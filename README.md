@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Online Quiz Management System
 
 A Node.js, Express, EJS, and MySQL based online quiz management system with admin, teacher, and student features.
@@ -127,7 +127,3 @@ http://localhost:3000
 - Another device only needs to run `npm install` after cloning the project.
 - Keep `.env.example` in the repository so other users know which environment variables are required.
 
-## Website link: https://online-quiz-management-system-nphc.onrender.com
-=======
-# quiz-management-system-mysql
->>>>>>> 68075094238924d454bcab8da2342175a20722d1
