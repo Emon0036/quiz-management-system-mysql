@@ -1,0 +1,231 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Student</span>
+        <h1>Your Progress</h1>
+        <p>Track points, completion, streaks, and how your performance is trending across categories.</p>
+      </div>
+      <div class="toolbar">
+        <a href="/enrollments/my-quizzes" class="btn btn-outline-primary">My Exams</a>
+        <a href="/enrollments/leaderboard" class="btn btn-primary">Leaderboard</a>
+      </div>
+    </div>
+
+    <%
+      const clampPercent = (value) => Math.max(0, Math.min(100, Number(value || 0)));
+      const totalQuizzes = Number(progress.totalQuizzes || 0);
+      const completedQuizzes = Number(progress.completedQuizzes || 0);
+      const passedQuizzes = Number(progress.passedQuizzes || 0);
+      const failedQuizzes = Number(progress.failedQuizzes || 0);
+      const totalAttempts = Number(progress.totalAttempts || 0);
+      const averageScore = clampPercent(progress.averageScore);
+      const totalPoints = Number(progress.totalPoints || 0);
+      const streak = Number(progress.streak || 0);
+      const completionRate = totalQuizzes ? clampPercent(Math.round((completedQuizzes / totalQuizzes) * 100)) : 0;
+      const remainingQuizzes = Math.max(totalQuizzes - completedQuizzes, 0);
+      const reviewedOutcomes = passedQuizzes + failedQuizzes;
+      const passRate = reviewedOutcomes ? clampPercent(Math.round((passedQuizzes / reviewedOutcomes) * 100)) : 0;
+      const streakGoal = 7;
+      const streakRate = clampPercent(Math.round((streak / streakGoal) * 100));
+      const completionAngle = completionRate * 3.6;
+      const averageAngle = averageScore * 3.6;
+      const passAngle = passRate * 3.6;
+      const streakAngle = streakRate * 3.6;
+      const completionChart = `conic-gradient(var(--accent) 0deg ${completionAngle}deg, rgba(67, 108, 140, 0.14) ${completionAngle}deg 360deg)`;
+      const averageChart = `conic-gradient(var(--brand) 0deg ${averageAngle}deg, rgba(67, 108, 140, 0.14) ${averageAngle}deg 360deg)`;
+      const outcomeChart = reviewedOutcomes
+        ? `conic-gradient(var(--success) 0deg ${passAngle}deg, var(--danger) ${passAngle}deg 360deg)`
+        : 'conic-gradient(rgba(67, 108, 140, 0.14) 0deg 360deg)';
+      const streakChart = `conic-gradient(var(--warning) 0deg ${streakAngle}deg, rgba(67, 108, 140, 0.14) ${streakAngle}deg 360deg)`;
+      const categoryItems = (progress.quizzesByCategory || []).map((item) => {
+        const total = Number(item.total || 0);
+        const completed = Number(item.completed || 0);
+        return {
+          category: item.category || 'General',
+          total,
+          completed,
+          completionRate: total ? clampPercent(Math.round((completed / total) * 100)) : 0,
+          averageScore: clampPercent(item.averageScore),
+        };
+      });
+    %>
+
+    <div class="stats-grid">
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Total Points</span>
+            <strong class="metric-card__value"><%= totalPoints %></strong>
+            <small class="metric-card__meta">points earned from exams and reviews</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-star"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Average Score</span>
+            <strong class="metric-card__value"><%= averageScore %>%</strong>
+            <small class="metric-card__meta">overall average across completed work</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-chart-line"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Completed Exams</span>
+            <strong class="metric-card__value"><%= completedQuizzes %>/<%= totalQuizzes %></strong>
+            <small class="metric-card__meta">completion against total enrolled exams</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-check-circle"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Streak</span>
+            <strong class="metric-card__value"><%= streak %></strong>
+            <small class="metric-card__meta">days of active learning momentum</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-fire"></i></span>
+        </div>
+      </article>
+    </div>
+
+    <div class="progress-visual-grid">
+      <section class="progress-chart-card progress-chart-card--wide">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Completion</span>
+            <h2>Overall exam progress</h2>
+            <p>A visual snapshot of enrolled work, finished exams, and attempts.</p>
+          </div>
+        </div>
+
+        <div class="progress-chart-layout">
+          <div class="progress-ring progress-ring--large" style="--ring-chart: <%= completionChart %>;" role="img" aria-label="<%= completionRate %>% of enrolled exams completed">
+            <div class="progress-ring__center">
+              <strong><%= completionRate %>%</strong>
+              <span>Complete</span>
+            </div>
+          </div>
+
+          <div class="progress-stat-strip">
+            <article>
+              <span>Enrolled</span>
+              <strong><%= totalQuizzes %></strong>
+            </article>
+            <article>
+              <span>Completed</span>
+              <strong><%= completedQuizzes %></strong>
+            </article>
+            <article>
+              <span>Remaining</span>
+              <strong><%= remainingQuizzes %></strong>
+            </article>
+            <article>
+              <span>Attempts</span>
+              <strong><%= totalAttempts %></strong>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <aside class="progress-chart-card">
+        <span class="eyebrow">Next Move</span>
+        <h3>Recommended focus</h3>
+        <p>
+          <% if (completionRate < 50) { %>
+            Your completion rate is still building. Start with one enrolled exam to move the bar quickly.
+          <% } else if (averageScore < 70) { %>
+            Completion is moving well. Revisit lower-scoring categories to lift your average next.
+          <% } else { %>
+            Strong progress overall. Push for consistency and keep the streak active.
+          <% } %>
+        </p>
+
+        <div class="mini-ring-grid">
+          <div class="mini-ring-card">
+            <div class="progress-ring progress-ring--mini" style="--ring-chart: <%= averageChart %>;">
+              <div class="progress-ring__center"><strong><%= averageScore %>%</strong></div>
+            </div>
+            <span>Average</span>
+          </div>
+          <div class="mini-ring-card">
+            <div class="progress-ring progress-ring--mini" style="--ring-chart: <%= outcomeChart %>;">
+              <div class="progress-ring__center"><strong><%= passRate %>%</strong></div>
+            </div>
+            <span>Pass rate</span>
+          </div>
+          <div class="mini-ring-card">
+            <div class="progress-ring progress-ring--mini" style="--ring-chart: <%= streakChart %>;">
+              <div class="progress-ring__center"><strong><%= streak %></strong></div>
+            </div>
+            <span>Streak</span>
+          </div>
+        </div>
+
+        <div class="outcome-legend">
+          <span><i class="legend-dot legend-dot--success"></i>Passed <strong><%= passedQuizzes %></strong></span>
+          <span><i class="legend-dot legend-dot--danger"></i>Failed <strong><%= failedQuizzes %></strong></span>
+        </div>
+      </aside>
+    </div>
+
+    <section class="progress-chart-card">
+      <div class="panel-header">
+        <div class="panel-header__copy">
+          <span class="eyebrow">Categories</span>
+          <h2>Progress by category</h2>
+          <p>Completion and average score are shown side by side for each topic.</p>
+        </div>
+        <a href="/enrollments/browse" class="btn btn-outline-primary btn-sm">Enroll more</a>
+      </div>
+
+      <% if (!categoryItems.length) { %>
+        <div class="empty-state">
+          <h3>No progress yet</h3>
+          <p>Enroll in an exam and submit your first attempt to start building these charts.</p>
+          <a href="/enrollments/browse" class="btn btn-primary mt-3">Browse exams</a>
+        </div>
+      <% } else { %>
+        <div class="category-chart-list">
+          <% categoryItems.forEach((item) => { %>
+            <article class="category-chart-row">
+              <div class="category-chart-row__title">
+                <strong><%= item.category %></strong>
+                <span><%= item.completed %> / <%= item.total %> completed</span>
+              </div>
+
+              <div class="category-chart-bars">
+                <div class="chart-bar">
+                  <div class="chart-bar__top">
+                    <span>Completion</span>
+                    <strong><%= item.completionRate %>%</strong>
+                  </div>
+                  <div class="chart-bar__track">
+                    <span class="chart-bar__fill chart-bar__fill--completion" style="width: <%= item.completionRate %>%"></span>
+                  </div>
+                </div>
+
+                <div class="chart-bar">
+                  <div class="chart-bar__top">
+                    <span>Average</span>
+                    <strong><%= item.averageScore %>%</strong>
+                  </div>
+                  <div class="chart-bar__track">
+                    <span class="chart-bar__fill chart-bar__fill--average" style="width: <%= item.averageScore %>%"></span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </div>
+</section>
+

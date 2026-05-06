@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>QuizMaster Viva Note</title>
+    <style>
+      :root {
+        --ink: #183448;
+        --muted: #567285;
+        --line: #cfe0eb;
+        --brand: #0e5c8b;
+        --brand-dark: #0a4770;
+        --soft: #eef6fb;
+        --soft-2: #f8fbfd;
+        --accent: #1c9b8f;
+        --warn: #c27a11;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #f4f8fb;
+        font-family: "Nirmala UI", "Segoe UI", "Roboto", sans-serif;
+        line-height: 1.55;
+      }
+
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        padding: 16mm 15mm 14mm;
+        background: #fff;
+      }
+
+      .page + .page {
+        page-break-before: always;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      h1 {
+        font-size: 28px;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        font-size: 18px;
+        margin-bottom: 10px;
+      }
+
+      h3 {
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+
+      p {
+        margin: 0 0 10px;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      li + li {
+        margin-top: 4px;
+      }
+
+      .hero {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 18px 20px;
+        background:
+          linear-gradient(135deg, rgba(14, 92, 139, 0.08), rgba(28, 155, 143, 0.08)),
+          #fff;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--soft);
+        color: var(--brand-dark);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .subtle {
+        color: var(--muted);
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px 14px;
+        background: var(--soft-2);
+      }
+
+      .mini {
+        font-size: 12px;
+      }
+
+      .big {
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .section {
+        margin-top: 16px;
+      }
+
+      .talk {
+        border-left: 4px solid var(--brand);
+        padding: 10px 12px;
+        background: #f7fbfe;
+        border-radius: 10px;
+        margin-top: 8px;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .flow-box {
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px;
+        background: #fff;
+        min-height: 88px;
+      }
+
+      .flow-box:not(:last-child)::after {
+        content: "→";
+        position: absolute;
+        right: -11px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: var(--brand);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 6px 10px;
+        background: var(--soft);
+        color: var(--brand-dark);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+
+      .table th,
+      .table td {
+        padding: 8px 9px;
+        border: 1px solid var(--line);
+        vertical-align: top;
+        text-align: left;
+      }
+
+      .table th {
+        background: var(--soft);
+      }
+
+      .role-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .role-card {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+      }
+
+      .role-card h3 {
+        color: var(--brand-dark);
+      }
+
+      .badge {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        background: #edf7f6;
+        color: #0d6f66;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .note {
+        margin-top: 8px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #fff8ee;
+        border: 1px solid #f0d2a2;
+        font-size: 12px;
+      }
+
+      .qa {
+        display: grid;
+        gap: 10px;
+      }
+
+      .qa-item {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: #fff;
+      }
+
+      .qa-q {
+        font-weight: 700;
+        color: var(--brand-dark);
+        margin-bottom: 4px;
+      }
+
+      .footer {
+        margin-top: 14px;
+        font-size: 11px;
+        color: var(--muted);
+        text-align: right;
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        .page {
+          margin: 0;
+          width: auto;
+          min-height: auto;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="page">
+      <div class="hero">
+        <span class="eyebrow">Viva Ready Note</span>
+        <h1>QuizMaster / Online Quiz Management System</h1>
+        <p class="subtle">
+          Compact Bangla note for viva. Style: day-to-day explanation + a little English technical term
+          so you can explain confidently and naturally.
+        </p>
+        <div class="pill-row">
+          <span class="pill">Express.js</span>
+          <span class="pill">EJS</span>
+          <span class="pill">MySQL + Sequelize</span>
+          <span class="pill">Passport Auth</span>
+          <span class="pill">Role Based Access</span>
+          <span class="pill">Quiz + Coding Module</span>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>1 minute introduction</h2>
+          <div class="talk">
+            “আমার project টা একটা <strong>role-based online quiz management system</strong>।
+            এখানে <strong>admin</strong> teacher manage করে, <strong>teacher</strong> quiz create/publish করে,
+            আর <strong>student</strong> enroll করে exam দেয়, result দেখে, leaderboard আর progress track করে।
+            আমি শুধু MCQ না, <strong>true/false</strong>, <strong>short answer</strong>, আর
+            <strong>coding test / coding submission</strong> flow-ও রেখেছি।
+            পুরো system টা Express + EJS + MySQL দিয়ে build করা হয়েছে।”
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Quick Identity</h2>
+          <table class="table">
+            <tr>
+              <th>Project type</th>
+              <td>Web application</td>
+            </tr>
+            <tr>
+              <th>Architecture</th>
+              <td>MVC style</td>
+            </tr>
+            <tr>
+              <th>Frontend</th>
+              <td>EJS + CSS + Bootstrap/Tailwind utility usage</td>
+            </tr>
+            <tr>
+              <th>Backend</th>
+              <td>Express.js</td>
+            </tr>
+            <tr>
+              <th>Database</th>
+              <td>MySQL</td>
+            </tr>
+            <tr>
+              <th>Auth</th>
+              <td>Passport local + Google</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Main modules I built</h2>
+        <div class="role-grid">
+          <div class="role-card">
+            <h3>Admin Panel</h3>
+            <ul class="mini">
+              <li>First admin setup</li>
+              <li>Create other admin</li>
+              <li>Approve / reject teacher</li>
+              <li>Grant teacher by email</li>
+              <li>Block / unblock student or teacher</li>
+            </ul>
+            <span class="badge">Control Layer</span>
+          </div>
+          <div class="role-card">
+            <h3>Teacher Panel</h3>
+            <ul class="mini">
+              <li>Create, edit, publish quiz</li>
+              <li>Add multiple question types</li>
+              <li>Review pending answers</li>
+              <li>View analytics + leaderboard</li>
+              <li>Manage coding problems/submissions</li>
+            </ul>
+            <span class="badge">Content Creation</span>
+          </div>
+          <div class="role-card">
+            <h3>Student Panel</h3>
+            <ul class="mini">
+              <li>Browse exam and enroll</li>
+              <li>Attempt exam</li>
+              <li>See result/history/review</li>
+              <li>Progress + global leaderboard</li>
+              <li>Teacher-wise and category-wise filter</li>
+            </ul>
+            <span class="badge">Assessment Experience</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>System flow visual</h2>
+        <div class="flow">
+          <div class="flow-box">
+            <h3>Admin</h3>
+            <p class="mini">Teacher approve করে system access দেয়</p>
+          </div>
+          <div class="flow-box">
+            <h3>Teacher</h3>
+            <p class="mini">Quiz create করে, question add করে, publish করে</p>
+          </div>
+          <div class="flow-box">
+            <h3>Student</h3>
+            <p class="mini">Teacher/category filter দিয়ে exam select করে, তারপর attempt দেয়</p>
+          </div>
+          <div class="flow-box">
+            <h3>Result Engine</h3>
+            <p class="mini">Auto grading + manual review + progress + leaderboard update</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Simple explanation I can say in viva</h2>
+        <div class="talk">
+          “Real life-এ অনেক teacher থাকলে student confuse হয়ে যায়। তাই আমি শুধু exam list show করি নাই,
+          বরং <strong>teacher-wise filter</strong> আর <strong>category-wise grouping</strong> add করেছি।
+          Student আগে teacher select করতে পারে, তারপর ওই teacher-এর published exam গুলো দেখতে পারে।
+          এতে UX clear হয় এবং intended teacher-এর exam খুঁজে পাওয়া easy হয়।”
+        </div>
+      </div>
+
+      <div class="footer">Page 1</div>
+    </section>
+
+    <section class="page">
+      <div class="section">
+        <span class="eyebrow">Architecture</span>
+        <h2>Project structure I can explain</h2>
+        <div class="two-col">
+          <div class="card">
+            <h3>Folder responsibility</h3>
+            <table class="table">
+              <tr>
+                <th>Folder</th>
+                <th>What it does</th>
+              </tr>
+              <tr>
+                <td><code>routes/</code></td>
+                <td>URL define করে, controller call করে</td>
+              </tr>
+              <tr>
+                <td><code>controllers/</code></td>
+                <td>Business logic handle করে</td>
+              </tr>
+              <tr>
+                <td><code>models/</code></td>
+                <td>Database schema ও relation define করে</td>
+              </tr>
+              <tr>
+                <td><code>views/</code></td>
+                <td>EJS templates, UI rendering</td>
+              </tr>
+              <tr>
+                <td><code>middleware/</code></td>
+                <td>Auth, tab session, error handling</td>
+              </tr>
+              <tr>
+                <td><code>utils/</code></td>
+                <td>Progress/points calculation type helper logic</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="card">
+            <h3>Why MVC style?</h3>
+            <ul class="mini">
+              <li>Code clean থাকে</li>
+              <li>Logic আর UI আলাদা থাকে</li>
+              <li>Maintenance easy হয়</li>
+              <li>New feature add করা সহজ</li>
+              <li>Controller reuse করা যায়</li>
+            </ul>
+            <div class="note">
+              Viva line: “আমি MVC-like separation follow করেছি যাতে route, business logic,
+              database schema আর view একসাথে জট না পাকায়।”
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Database entities and relations</h2>
+        <table class="table">
+          <tr>
+            <th>Model</th>
+            <th>Main fields</th>
+            <th>Purpose</th>
+          </tr>
+          <tr>
+            <td>User</td>
+            <td>name, email, role, teacherStatus, accountStatus</td>
+            <td>Admin/Teacher/Student identity manage করে</td>
+          </tr>
+          <tr>
+            <td>Quiz</td>
+            <td>title, category, examType, difficulty, duration, createdBy, status</td>
+            <td>Teacher-created exam container</td>
+          </tr>
+          <tr>
+            <td>Question</td>
+            <td>quiz, type, options, correctAnswer, marks, testCases</td>
+            <td>Different question type store করে</td>
+          </tr>
+          <tr>
+            <td>Enrollment</td>
+            <td>student, quiz, status, attempts, bestScore</td>
+            <td>Student কোন exam-এ enrolled সেটা track করে</td>
+          </tr>
+          <tr>
+            <td>Attempt</td>
+            <td>student, quiz, answers, score, percentage, status</td>
+            <td>Exam submission record</td>
+          </tr>
+          <tr>
+            <td>Progress</td>
+            <td>averageScore, totalPoints, streak, quizzesByCategory</td>
+            <td>Student progress analytics</td>
+          </tr>
+          <tr>
+            <td>Leaderboard / GlobalLeaderboard</td>
+            <td>bestPercentage, rank, totalPoints</td>
+            <td>Quiz-wise and platform-wise ranking</td>
+          </tr>
+          <tr>
+            <td>Problem / Submission</td>
+            <td>coding problem, code, review, marks</td>
+            <td>Coding practice and teacher review flow</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Key features in plain Bangla</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h3>Authentication</h3>
+            <p class="mini">Local login + Google login, password hash with bcrypt, session stored in MySQL.</p>
+          </div>
+          <div class="card">
+            <h3>Teacher approval</h3>
+            <p class="mini">সব teacher auto-access পায় না। Admin approve করলে তবেই teacher dashboard use করতে পারে।</p>
+          </div>
+          <div class="card">
+            <h3>Blocked user control</h3>
+            <p class="mini">Admin account block করলে user next request থেকেই access হারায়।</p>
+          </div>
+          <div class="card">
+            <h3>Mixed question support</h3>
+            <p class="mini">MCQ, true/false, short-answer, coding type আলাদা validation দিয়ে handle করা হয়েছে।</p>
+          </div>
+          <div class="card">
+            <h3>Teacher review flow</h3>
+            <p class="mini">Short answer / coding manual review লাগলে teacher marks আর comment add করে।</p>
+          </div>
+          <div class="card">
+            <h3>Smart browsing</h3>
+            <p class="mini">Student এখন teacher-wise, category-wise, difficulty-wise, exam-type-wise filter করতে পারে।</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Teacher to student data flow</h2>
+        <div class="flow">
+          <div class="flow-box">
+            <h3>Create</h3>
+            <p class="mini">Teacher quiz create করে with category, examType, difficulty</p>
+          </div>
+          <div class="flow-box">
+            <h3>Publish</h3>
+            <p class="mini">Status draft থেকে published হয়</p>
+          </div>
+          <div class="flow-box">
+            <h3>Enroll & Attempt</h3>
+            <p class="mini">Student enroll করে exam submit দেয়</p>
+          </div>
+          <div class="flow-box">
+            <h3>Update records</h3>
+            <p class="mini">Attempt, Result, Progress, Leaderboard সব update হয়</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">Page 2</div>
+    </section>
+
+    <section class="page">
+      <div class="section">
+        <span class="eyebrow">Core Logic</span>
+        <h2>How exam evaluation works</h2>
+        <div class="two-col">
+          <div class="card">
+            <h3>Auto-graded flow</h3>
+            <ul class="mini">
+              <li>MCQ and true/false immediately compare করা যায়</li>
+              <li>Score এবং percentage সাথে সাথে calculate হয়</li>
+              <li>Pass/fail check করা হয়</li>
+              <li>Result save হয়</li>
+              <li>Leaderboard update হয়</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Manual review flow</h3>
+            <ul class="mini">
+              <li>Short answer or coding answer initially pending-review থাকে</li>
+              <li>Teacher review page থেকে marks আর comments দেয়</li>
+              <li>তারপর final score update হয়</li>
+              <li>Then progress and ranking finalize করা হয়</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Progress + points system</h2>
+        <div class="talk">
+          “আমি শুধু raw score store করি নাই। Student-এর overall growth দেখানোর জন্য average score,
+          total points, streak, passed/failed count, category-wise progress এবং global leaderboard maintain করেছি।
+          Hard quiz হলে points multiplier বেশি হয়, তাই difficulty অনুযায়ী reward system আছে।”
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Security and control points</h2>
+        <table class="table">
+          <tr>
+            <th>Area</th>
+            <th>What I used</th>
+            <th>Why</th>
+          </tr>
+          <tr>
+            <td>Password</td>
+            <td><code>bcryptjs</code></td>
+            <td>Plain text password avoid করার জন্য</td>
+          </tr>
+          <tr>
+            <td>Authentication</td>
+            <td><code>passport-local</code></td>
+            <td>Secure login flow</td>
+          </tr>
+          <tr>
+            <td>Authorization</td>
+            <td><code>ensureAdmin</code>, <code>ensureTeacher</code>, <code>ensureStudent</code></td>
+            <td>Role based access control</td>
+          </tr>
+          <tr>
+            <td>Blocked account</td>
+            <td><code>enforceActiveAccount</code></td>
+            <td>Blocked user যেন system use করতে না পারে</td>
+          </tr>
+          <tr>
+            <td>Sessions</td>
+            <td><code>express-mysql-session</code></td>
+            <td>Session persistent রাখা</td>
+          </tr>
+          <tr>
+            <td>Method override</td>
+            <td><code>_method</code></td>
+            <td>EJS form থেকে PUT/PATCH/DELETE support</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Special improvement points I can mention</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h3>Multi-tab session support</h3>
+            <p class="mini">একই browser-এ আলাদা tab-এ আলাদা role/login manage করার custom middleware আছে।</p>
+          </div>
+          <div class="card">
+            <h3>Teacher-wise filter</h3>
+            <p class="mini">Student specific teacher select করে শুধুই ওই teacher-এর exam দেখতে পারে।</p>
+          </div>
+          <div class="card">
+            <h3>Category grouping</h3>
+            <p class="mini">Long mixed list না দেখিয়ে category section-এ exam show করা হয়।</p>
+          </div>
+          <div class="card">
+            <h3>Dark mode</h3>
+            <p class="mini">Shared theme toggle দিয়ে light/dark mode support আছে।</p>
+          </div>
+          <div class="card">
+            <h3>Manual coding review</h3>
+            <p class="mini">Coding submission teacher manually review করে mark/comment দিতে পারে।</p>
+          </div>
+          <div class="card">
+            <h3>MySQL schema sync</h3>
+            <p class="mini">MySQL connection হলে app startup-এ required tables auto-sync হয়।</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Challenge vs solution</h2>
+        <table class="table">
+          <tr>
+            <th>Challenge</th>
+            <th>My solution</th>
+          </tr>
+          <tr>
+            <td>Many teachers, many exams, student confusion</td>
+            <td>Teacher-wise filter + category grouping + type filter</td>
+          </tr>
+          <tr>
+            <td>All question types cannot be auto-check</td>
+            <td>Short answer / coding kept as pending-review workflow</td>
+          </tr>
+          <tr>
+            <td>Need role-based safety</td>
+            <td>Middleware-based auth and authorization</td>
+          </tr>
+          <tr>
+            <td>Same browser multiple account handling</td>
+            <td>Custom tab session middleware</td>
+          </tr>
+          <tr>
+            <td>Admin control over bad users</td>
+            <td>Block/unblock feature + active account enforcement</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="footer">Page 3</div>
+    </section>
+
+    <section class="page">
+      <div class="section">
+        <span class="eyebrow">Viva Talk Track</span>
+        <h2>Ready-made speaking script</h2>
+        <div class="talk">
+          “Sir, project-এর main goal ছিল একটা practical online assessment platform বানানো যেখানে
+          admin, teacher, আর student তিনটা role clearly separated থাকে। Admin teacher approval আর user control করে,
+          teacher quiz তৈরি ও review করে, আর student exam দেয়, result দেখে, progress track করে।
+          আমি শুধু simple quiz না, manual review লাগতে পারে এমন short-answer আর coding submission flow-ও add করেছি।
+          এছাড়া student confusion কমানোর জন্য teacher-wise filter, category-wise grouping, dark mode, multi-tab session,
+          block/unblock control এই extra usability and control features add করেছি।”
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Possible viva questions with short answers</h2>
+        <div class="qa">
+          <div class="qa-item">
+            <div class="qa-q">1. কেন MySQL use করেছ?</div>
+            <div class="mini">
+              কারণ quiz, enrollment, attempt, result এগুলোর মধ্যে relational connection আছে।
+              Sequelize দিয়ে schema, relation-style query, আর table sync manage করা সহজ হয়েছে।
+            </div>
+          </div>
+
+          <div class="qa-item">
+            <div class="qa-q">2. কেন EJS use করেছ, React না?</div>
+            <div class="mini">
+              এই project-এর জন্য server-rendered flow enough ছিল। EJS দিয়ে দ্রুত page rendering, form handling,
+              and MVC integration সহজ হয়েছে।
+            </div>
+          </div>
+
+          <div class="qa-item">
+            <div class="qa-q">3. Auto grading আর manual review দুটো কেন লাগল?</div>
+            <div class="mini">
+              সব answer machine evaluate করতে পারে না। MCQ/true-false auto-check হয়,
+              কিন্তু short answer আর coding submission teacher judgement দরকার।
+            </div>
+          </div>
+
+          <div class="qa-item">
+            <div class="qa-q">4. Teacher-wise filter কেন important?</div>
+            <div class="mini">
+              একই platform-এ অনেক teacher exam দিলে student confuse হতে পারে।
+              Teacher filter দিলে student intended teacher-এর exam সহজে খুঁজে পায়।
+            </div>
+          </div>
+
+          <div class="qa-item">
+            <div class="qa-q">5. Security কীভাবে handle করেছ?</div>
+            <div class="mini">
+              Password hash with bcrypt, Passport auth, role middleware, blocked-account enforcement,
+              MySQL session store, and route-level protection use করেছি।
+            </div>
+          </div>
+
+          <div class="qa-item">
+            <div class="qa-q">6. Project-এর unique point কী?</div>
+            <div class="mini">
+              শুধু quiz platform না, এখানে role approval, manual review, coding module, leaderboard,
+              progress, multi-tab login handling, and teacher/category based browsing একসাথে আছে।
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>If asked “future improvement?”</h2>
+        <div class="two-col">
+          <div class="card">
+            <h3>Good future ideas</h3>
+            <ul class="mini">
+              <li>Real coding execution sandbox</li>
+              <li>Email notification for review/result</li>
+              <li>More detailed analytics charts</li>
+              <li>Question bank reuse</li>
+              <li>CSV/PDF report export</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Nice final line</h3>
+            <div class="talk mini">
+              “Overall, project টার focus ছিল practical exam managementকে clean, role-based, and easy to use করা।
+              আমি শুধু CRUD না, full workflow চিন্তা করে build করেছি — from teacher approval to student attempt,
+              review, progress, and ranking.”
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Very short revision checklist</h2>
+        <div class="pill-row">
+          <span class="pill">Goal</span>
+          <span class="pill">Tech stack</span>
+          <span class="pill">3 roles</span>
+          <span class="pill">Quiz flow</span>
+          <span class="pill">Manual review</span>
+          <span class="pill">Teacher filter</span>
+          <span class="pill">Security</span>
+          <span class="pill">Future work</span>
+        </div>
+      </div>
+
+      <div class="footer">Page 4</div>
+    </section>
+  </body>
+</html>

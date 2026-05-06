@@ -1,0 +1,53 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <% const reviewedCount = (attempts || []).filter((attempt) => attempt.status !== 'pending-review').length; %>
+    <% const pendingCount = (attempts || []).filter((attempt) => attempt.status === 'pending-review').length; %>
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Attempts</span>
+        <h1><%= quiz.title %></h1>
+        <p>Monitor submitted work for this quiz and jump into review when manual feedback is required.</p>
+      </div>
+      <a class="btn btn-outline-secondary" href="/teacher/quizzes">Back</a>
+    </div>
+
+    <div class="summary-grid">
+      <article class="summary-card">
+        <span>Total Attempts</span>
+        <strong><%= attempts.length %></strong>
+        <small>student submissions recorded for this quiz</small>
+      </article>
+      <article class="summary-card">
+        <span>Reviewed</span>
+        <strong><%= reviewedCount %></strong>
+        <small>submissions already finalized</small>
+      </article>
+      <article class="summary-card">
+        <span>Pending Review</span>
+        <strong><%= pendingCount %></strong>
+        <small>manual checks still waiting</small>
+      </article>
+    </div>
+
+    <div class="table-card table-shell">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Student</th><th>Score</th><th>Status</th><th>Submitted</th><th class="text-end">Action</th></tr></thead>
+          <tbody>
+            <% if (attempts.length === 0) { %><tr><td colspan="5" class="text-center text-muted py-4">No attempts yet.</td></tr><% } %>
+            <% attempts.forEach((attempt) => { %>
+              <tr>
+                <td><%= attempt.student.name %><div class="small text-muted"><%= attempt.student.email %></div></td>
+                <td><%= attempt.score %>/<%= attempt.totalMarks %> (<%= attempt.percentage %>%)</td>
+                <td><span class="badge text-bg-<%= attempt.status === 'pending-review' ? 'warning' : 'success' %>"><%= attempt.status %></span></td>
+                <td><%= attempt.submittedAt.toLocaleString() %></td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/teacher/attempts/<%= attempt._id %>/review">Review</a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>

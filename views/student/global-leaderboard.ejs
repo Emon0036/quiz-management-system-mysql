@@ -1,0 +1,79 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Leaderboard</span>
+        <h1>Top Students</h1>
+        <p>See the strongest overall performers on the platform and where you currently rank among them.</p>
+      </div>
+      <% if (typeof userRank === 'number') { %>
+        <div class="rank-pill">Your rank: #<%= userRank %></div>
+      <% } %>
+    </div>
+
+    <div class="table-card table-shell">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Student</th>
+              <th>Points</th>
+              <th>Avg %</th>
+              <th>Completed</th>
+              <th class="text-end">Badge</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!topStudents || topStudents.length === 0) { %>
+              <tr><td colspan="6" class="text-center text-muted py-4">Leaderboard is empty.</td></tr>
+            <% } %>
+            <% (topStudents || []).forEach((entry) => { %>
+              <tr class="<%= (userLeaderboard && entry.student && userLeaderboard.student && String(entry.student._id) === String(userLeaderboard.student._id)) ? 'table-active' : '' %>">
+                <td><strong>#<%= entry.rank %></strong></td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <img src="<%= entry.student?.profileImage || '/images/default-avatar.png' %>" alt="" width="32" height="32" class="rounded-circle" style="object-fit: cover;">
+                    <div>
+                      <div class="fw-semibold"><%= entry.student?.name || 'Unknown' %></div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <strong><%= entry.totalPoints %></strong>
+                  <div class="small text-muted">G:<%= entry.goldPoints || 0 %> S:<%= entry.silverPoints || 0 %> B:<%= entry.bronzePoints || 0 %></div>
+                </td>
+                <td><%= entry.averageScore %>%</td>
+                <td><%= entry.quizzesCompleted %></td>
+                <td class="text-end">
+                  <% if (entry.badge === 'gold') { %>
+                    <span class="badge text-bg-warning">Gold</span>
+                  <% } else if (entry.badge === 'silver') { %>
+                    <span class="badge text-bg-secondary">Silver</span>
+                  <% } else if (entry.badge === 'bronze') { %>
+                    <span class="badge" style="background:#c07a43;color:#fff;">Bronze</span>
+                  <% } else if (entry.badge === 'top5') { %>
+                    <span class="badge text-bg-info">Top 5</span>
+                  <% } else { %>
+                    <span class="text-muted small">-</span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if (totalPages && totalPages > 1) { %>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <div class="text-muted small">Page <%= currentPage %> of <%= totalPages %></div>
+          <div class="btn-group btn-group-sm">
+            <a class="btn btn-outline-secondary <%= currentPage <= 1 ? 'disabled' : '' %>" href="/enrollments/leaderboard?page=<%= Math.max(1, Number(currentPage) - 1) %>">Prev</a>
+            <a class="btn btn-outline-secondary <%= currentPage >= totalPages ? 'disabled' : '' %>" href="/enrollments/leaderboard?page=<%= Math.min(totalPages, Number(currentPage) + 1) %>">Next</a>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,58 @@
+<!-- Toast Notifications -->
+<div class="app-flash-stack space-y-2" x-data="{ toasts: [] }" x-init="
+  <% success.forEach((message, index) => { %>
+    toasts.push({ id: 'success-<%= index %>', type: 'success', message: '<%= message.replace(/'/g, '\\\'') %>', show: true });
+    setTimeout(() => { toasts.find(t => t.id === 'success-<%= index %>').show = false; }, 5000);
+  <% }) %>
+  <% error.forEach((message, index) => { %>
+    toasts.push({ id: 'error-<%= index %>', type: 'error', message: '<%= message.replace(/'/g, '\\\'') %>', show: true });
+    setTimeout(() => { toasts.find(t => t.id === 'error-<%= index %>').show = false; }, 5000);
+  <% }) %>
+">
+  <template x-for="toast in toasts" :key="toast.id">
+    <div
+      x-show="toast.show"
+      x-transition:enter="transition ease-out duration-300"
+      x-transition:enter-start="opacity-0 transform translate-x-full"
+      x-transition:enter-end="opacity-100 transform translate-x-0"
+      x-transition:leave="transition ease-in duration-300"
+      x-transition:leave-start="opacity-100 transform translate-x-0"
+      x-transition:leave-end="opacity-0 transform translate-x-full"
+      class="app-toast"
+      :class="{
+        'app-toast--success': toast.type === 'success',
+        'app-toast--error': toast.type === 'error'
+      }"
+    >
+      <div class="app-toast__content">
+        <div class="app-toast__icon"
+          :class="{
+            'app-toast__icon--success': toast.type === 'success',
+            'app-toast__icon--error': toast.type === 'error'
+          }"
+        >
+          <i
+            class="app-toast__icon-mark"
+            :class="{
+              'fas fa-check': toast.type === 'success',
+              'fas fa-exclamation-triangle': toast.type === 'error'
+            }"
+          ></i>
+        </div>
+        <div class="app-toast__copy">
+          <p class="app-toast__title" x-text="toast.type === 'success' ? 'Success' : 'Attention'"></p>
+          <p class="app-toast__message" x-text="toast.message"></p>
+        </div>
+        <div class="app-toast__actions">
+          <button
+            @click="toast.show = false"
+            class="app-toast__dismiss"
+            aria-label="Dismiss notification"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>

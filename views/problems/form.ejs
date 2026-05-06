@@ -1,0 +1,93 @@
+<% layout('layouts/main') %>
+<% const cases = (problem && problem.testCases && problem.testCases.length) ? problem.testCases : [{ input: '', expectedOutput: '' }]; %>
+
+<section class="container py-4">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">Staff</span>
+      <h1><%= title %></h1>
+    </div>
+    <a href="/problems/manage" class="btn btn-outline-secondary">Back</a>
+  </div>
+
+  <form class="form-panel" action="<%= action %>" method="POST">
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <label class="form-label"><strong>Title</strong></label>
+        <input class="form-control" name="title" value="<%= problem.title || '' %>" placeholder="Problem title" required>
+      </div>
+      <div class="col-lg-4">
+        <label class="form-label"><strong>Difficulty</strong></label>
+        <select class="form-select" name="difficulty" required>
+          <% ['Easy','Medium','Hard'].forEach((level) => { %>
+            <option value="<%= level %>" <%= problem.difficulty === level ? 'selected' : '' %>><%= level %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label"><strong>Description</strong></label>
+        <textarea class="form-control" name="description" rows="6" placeholder="Describe the problem clearly" required><%= problem.description || '' %></textarea>
+      </div>
+
+      <div class="col-lg-6">
+        <label class="form-label"><strong>Input Format</strong></label>
+        <textarea class="form-control" name="inputFormat" rows="3" placeholder="Explain how input will be provided"><%= problem.inputFormat || '' %></textarea>
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label"><strong>Output Format</strong></label>
+        <textarea class="form-control" name="outputFormat" rows="3" placeholder="Explain what output is expected"><%= problem.outputFormat || '' %></textarea>
+      </div>
+
+      <div class="col-lg-6">
+        <label class="form-label"><strong>Sample Input</strong></label>
+        <textarea class="form-control font-monospace" name="sampleInput" rows="3" placeholder="Sample input"><%= problem.sampleInput || '' %></textarea>
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label"><strong>Sample Output</strong></label>
+        <textarea class="form-control font-monospace" name="sampleOutput" rows="3" placeholder="Expected output for the sample input"><%= problem.sampleOutput || '' %></textarea>
+      </div>
+
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 class="h5 mb-0">Test Cases</h2>
+          <button id="addTestCase" type="button" class="btn btn-sm btn-outline-primary">
+            <i class="fa-solid fa-plus me-1"></i>Add test case
+          </button>
+        </div>
+        <p class="small text-muted mt-2 mb-0">Used for evaluation on submission. Keep them hidden from students.</p>
+      </div>
+
+      <div class="col-12" id="testCasesContainer">
+        <% cases.forEach((testCase, index) => { %>
+          <div class="border rounded p-3 mb-3" data-test-case>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <strong>Test Case #<%= index + 1 %></strong>
+              <button type="button" class="btn btn-sm btn-outline-danger remove-test-case">
+                <i class="fa-solid fa-trash me-1"></i>Remove
+              </button>
+            </div>
+            <div class="row g-2">
+              <div class="col-lg-6">
+                <label class="form-label small text-muted">Input</label>
+                <textarea class="form-control font-monospace" name="testCases[<%= index %>][input]" rows="3" placeholder="Input for this test case"><%= testCase.input || '' %></textarea>
+              </div>
+              <div class="col-lg-6">
+                <label class="form-label small text-muted">Expected Output</label>
+                <textarea class="form-control font-monospace" name="testCases[<%= index %>][expectedOutput]" rows="3" placeholder="Expected output"><%= testCase.expectedOutput || '' %></textarea>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary" type="submit"><%= isEdit ? 'Update Problem' : 'Create Problem' %></button>
+        <a class="btn btn-outline-secondary" href="/problems/manage">Cancel</a>
+      </div>
+    </div>
+  </form>
+</section>
+
+<script src="/js/problemForm.js"></script>
+

@@ -1,0 +1,165 @@
+<%
+  const primaryLinks = [
+    { href: '/', label: 'Home', icon: 'fa-house' },
+    { href: '/about', label: 'About', icon: 'fa-circle-info' },
+  ];
+
+  const isPendingTeacher = currentUser && currentUser.role === 'teacher' && (currentUser.teacherStatus === 'pending' || currentUser.teacherStatus === 'rejected');
+  const dashboardLink = !currentUser
+    ? null
+    : currentUser.role === 'admin'
+      ? '/admin/dashboard'
+      : currentUser.role === 'teacher'
+        ? (isPendingTeacher ? '/auth/teacher-pending' : '/teacher/dashboard')
+        : '/student/dashboard';
+
+  const dashboardLabel = !currentUser
+    ? ''
+    : currentUser.role === 'admin'
+      ? 'Admin Workspace'
+      : currentUser.role === 'teacher'
+        ? (isPendingTeacher ? 'Teacher Access' : 'Teacher Workspace')
+        : 'Student Workspace';
+
+  const userLinks = !currentUser
+    ? []
+    : currentUser.role === 'admin'
+      ? [
+          { href: '/admin/dashboard', label: 'Admin Dashboard', icon: 'fa-gauge-high' },
+        ]
+      : currentUser.role === 'teacher'
+        ? (
+          isPendingTeacher
+            ? [{ href: '/auth/teacher-pending', label: 'Teacher Access', icon: 'fa-user-clock' }]
+            : [
+                { href: '/teacher/dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
+                { href: '/teacher/quizzes', label: 'My Quizzes', icon: 'fa-book-open' },
+                { href: '/teacher/quizzes/new', label: 'Create Quiz', icon: 'fa-plus' },
+                { href: '/teacher/reviews', label: 'Pending Reviews', icon: 'fa-clipboard-check' },
+              ]
+        )
+        : [
+            { href: '/student/dashboard', label: 'Dashboard', icon: 'fa-gauge-high' },
+            { href: '/enrollments/my-quizzes', label: 'My Exams', icon: 'fa-book-open' },
+            { href: '/student/history', label: 'History', icon: 'fa-clock-rotate-left' },
+            { href: '/student/reviews', label: 'Review Center', icon: 'fa-comments' },
+          ];
+%>
+<nav x-data="{ mobileOpen: false }" class="app-nav">
+  <div class="page-container nav-shell">
+    <div class="nav-row">
+      <a class="brand-lockup" href="/">
+        <span class="brand-mark">
+          <i class="fa-brands fa-joomla"></i>
+        </span>
+        <span class="brand-copy">
+          <strong><%= appName %></strong>
+          <small>Assessment made clearer</small>
+        </span>
+      </a>
+
+      <div class="nav-links">
+        <% primaryLinks.forEach((link) => { %>
+          <a class="nav-link" href="<%= link.href %>"><%= link.label %></a>
+        <% }) %>
+      </div>
+
+      <div class="nav-actions">
+        <button type="button" class="theme-toggle theme-toggle--nav" data-theme-toggle aria-label="Toggle dark mode">
+          <i class="fas fa-moon theme-toggle__icon" data-theme-icon></i>
+          <span class="theme-toggle__label" data-theme-label>Dark mode</span>
+        </button>
+        <% if (!currentUser) { %>
+          <a class="nav-link nav-link--muted" href="/auth/login">Login</a>
+          <a class="btn btn-primary btn-sm" href="/auth/register">Register</a>
+        <% } else { %>
+          <a class="workspace-pill" href="<%= dashboardLink %>">
+            <i class="fas fa-sparkles"></i>
+            <span><%= dashboardLabel %></span>
+          </a>
+          <div x-data="{ open: false }" class="profile-menu-wrap">
+            <button @click="open = !open" class="profile-trigger" type="button">
+              <span class="profile-avatar"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+              <span class="profile-copy">
+                <strong><%= currentUser.name %></strong>
+                <small><%= currentUser.role %></small>
+              </span>
+              <i class="fas fa-chevron-down text-xs"></i>
+            </button>
+            <div
+              x-show="open"
+              @click.outside="open = false"
+              x-transition
+              class="profile-menu"
+            >
+              <div class="profile-menu__header">
+                <strong><%= currentUser.name %></strong>
+                <span><%= currentUser.email %></span>
+              </div>
+              <div class="profile-menu__links">
+                <% userLinks.forEach((link) => { %>
+                  <a href="<%= link.href %>">
+                    <i class="fas <%= link.icon %>"></i>
+                    <span><%= link.label %></span>
+                  </a>
+                <% }) %>
+              </div>
+              <form action="/auth/logout" method="POST" class="profile-menu__footer">
+                <% if (currentTabId) { %>
+                  <input type="hidden" name="tab" value="<%= currentTabId %>">
+                <% } %>
+                <button type="submit" class="btn btn-outline-danger w-100">Logout</button>
+              </form>
+            </div>
+          </div>
+        <% } %>
+      </div>
+
+      <button @click="mobileOpen = !mobileOpen" class="nav-toggle" type="button" aria-label="Open menu">
+        <i class="fas" :class="mobileOpen ? 'fa-xmark' : 'fa-bars'"></i>
+      </button>
+    </div>
+
+    <div x-show="mobileOpen" x-transition class="mobile-nav-panel">
+      <div class="mobile-nav-links">
+        <% primaryLinks.forEach((link) => { %>
+          <a href="<%= link.href %>">
+            <i class="fas <%= link.icon %>"></i>
+            <span><%= link.label %></span>
+          </a>
+        <% }) %>
+      </div>
+
+      <div class="mobile-nav-divider"></div>
+      <button type="button" class="theme-toggle theme-toggle--nav theme-toggle--mobile" data-theme-toggle aria-label="Toggle dark mode">
+        <i class="fas fa-moon theme-toggle__icon" data-theme-icon></i>
+        <span class="theme-toggle__label" data-theme-label>Dark mode</span>
+      </button>
+
+      <% if (currentUser) { %>
+        <div class="mobile-nav-divider"></div>
+        <p class="mobile-section-title"><%= dashboardLabel %></p>
+        <div class="mobile-nav-links">
+          <% userLinks.forEach((link) => { %>
+            <a href="<%= link.href %>">
+              <i class="fas <%= link.icon %>"></i>
+              <span><%= link.label %></span>
+            </a>
+          <% }) %>
+        </div>
+        <form action="/auth/logout" method="POST" class="mobile-nav-footer">
+          <% if (currentTabId) { %>
+            <input type="hidden" name="tab" value="<%= currentTabId %>">
+          <% } %>
+          <button type="submit" class="btn btn-outline-danger w-100">Logout</button>
+        </form>
+      <% } else { %>
+        <div class="mobile-nav-divider"></div>
+        <div class="mobile-nav-footer">
+          <a class="btn btn-outline-primary w-100" href="/auth/login">Login</a>
+          <a class="btn btn-primary w-100" href="/auth/register">Register</a>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</nav>

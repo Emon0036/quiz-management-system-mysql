@@ -1,0 +1,43 @@
+<% layout('layouts/main') %>
+<section class="container py-4">
+  <div class="page-heading">
+    <div><span class="eyebrow">Coding Challenges</span><h1>Problem List</h1></div>
+  </div>
+
+  <% if (problems.length === 0) { %>
+    <div class="empty-state">No problems available yet.</div>
+  <% } else { %>
+    <div class="table-card">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Description</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% problems.forEach(problem => { %>
+              <tr>
+                <td>
+                  <strong><%= problem.title %></strong>
+                </td>
+                <td>
+                  <% if (problem.description) { %>
+                    <%= problem.description.substring(0, 50) %>...
+                  <% } else { %>
+                    <span class="text-muted">No description</span>
+                  <% } %>
+                </td>
+                <td class="text-end">
+                  <a href="/problems/<%= problem._id %>" class="btn btn-sm btn-primary">View</a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+</section>

@@ -1,0 +1,24 @@
+<% layout('layouts/main') %>
+<section class="hero-panel max-w-xl mx-auto my-16 px-6 py-10">
+  <p class="eyebrow">Administrator Setup</p>
+  <h1 class="text-3xl font-semibold mb-4">Create your first admin account</h1>
+  <p class="mb-8 text-slate-600">This administrator will manage teacher approvals, user access, and platform settings.</p>
+
+  <form action="/admin/setup" method="POST" class="grid gap-4">
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700">Full name</span>
+      <input class="input-field mt-2" name="name" placeholder="Full name" required>
+    </label>
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700">Email address</span>
+      <input class="input-field mt-2" type="email" name="email" placeholder="Email address" required>
+    </label>
+    <label class="block">
+      <span class="text-sm font-medium text-slate-700">Password</span>
+      <input class="input-field mt-2" type="password" name="password" placeholder="Password" minlength="6" required>
+    </label>
+    <button class="btn-primary w-full" type="submit">Create Admin</button>
+  </form>
+
+  <p class="text-sm text-center text-slate-600 mt-6">Already created? <a class="text-brand font-semibold" href="/auth/login">Login</a></p>
+</section>

@@ -1,0 +1,74 @@
+<% layout('layouts/main') %>
+<section class="container-fluid py-4">
+  <div class="page-heading mb-4">
+    <div>
+      <span class="eyebrow">Code Submissions</span>
+      <h1><%= problem.title %></h1>
+    </div>
+    <a href="/problems" class="btn btn-outline-secondary">Back to Problems</a>
+  </div>
+
+  <div class="form-panel">
+    <% if (submissions && submissions.length > 0) { %>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Student</th>
+              <th>Submitted</th>
+              <th>Language</th>
+              <th>Status</th>
+              <th>Marks</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% submissions.forEach(submission => { %>
+              <tr>
+                <td>
+                  <strong><%= submission.student.name %></strong>
+                  <br>
+                  <small class="text-muted"><%= submission.student.email %></small>
+                </td>
+                <td>
+                  <small><%= new Date(submission.submittedAt).toLocaleString() %></small>
+                </td>
+                <td>
+                  <span class="badge text-bg-info"><%= submission.language.toUpperCase() %></span>
+                </td>
+                <td>
+                  <% if (submission.status === 'reviewed') { %>
+                    <span class="badge text-bg-success">
+                      <i class="fa-solid fa-check me-1"></i>Reviewed
+                    </span>
+                  <% } else { %>
+                    <span class="badge text-bg-warning">
+                      <i class="fa-solid fa-clock me-1"></i>Pending
+                    </span>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (submission.status === 'reviewed') { %>
+                    <strong><%= submission.marksAwarded %></strong>
+                  <% } else { %>
+                    <span class="text-muted">-</span>
+                  <% } %>
+                </td>
+                <td>
+                  <a href="/submissions/<%= submission._id %>/review" class="btn btn-sm btn-primary">
+                    <i class="fa-solid fa-eye me-1"></i>Review
+                  </a>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <div class="alert alert-info">
+        <i class="fa-solid fa-circle-info me-2"></i>
+        No submissions yet for this problem.
+      </div>
+    <% } %>
+  </div>
+</section>

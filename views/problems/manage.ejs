@@ -1,0 +1,63 @@
+<% layout('layouts/main') %>
+<section class="container py-4">
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">Staff</span>
+      <h1><%= title %></h1>
+    </div>
+    <a href="/problems/create/new" class="btn btn-primary">
+      <i class="fa-solid fa-plus me-2"></i>Create Problem
+    </a>
+  </div>
+
+  <div class="table-card">
+    <% if (!problems || problems.length === 0) { %>
+      <div class="empty-state">No problems created yet.</div>
+    <% } else { %>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Difficulty</th>
+              <th>Test Cases</th>
+              <th>Created By</th>
+              <th>Created</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% problems.forEach((problem) => { %>
+              <tr>
+                <td>
+                  <strong><%= problem.title %></strong>
+                  <% if (problem.description) { %>
+                    <div class="small text-muted"><%= problem.description.substring(0, 80) %><%= problem.description.length > 80 ? '...' : '' %></div>
+                  <% } %>
+                </td>
+                <td>
+                  <span class="badge text-bg-<%= problem.difficulty === 'Easy' ? 'success' : problem.difficulty === 'Medium' ? 'warning' : 'danger' %>">
+                    <%= problem.difficulty %>
+                  </span>
+                </td>
+                <td><%= (problem.testCases || []).length %></td>
+                <td><%= problem.createdBy?.name || 'Unknown' %></td>
+                <td><%= problem.createdAt ? problem.createdAt.toLocaleDateString() : '' %></td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <a class="btn btn-outline-primary" href="/problems/<%= problem._id %>">View</a>
+                    <a class="btn btn-outline-secondary" href="/problems/<%= problem._id %>/edit">Edit</a>
+                  </div>
+                  <form class="d-inline" action="/problems/<%= problem._id %>?_method=DELETE" method="POST" onsubmit="return confirm('Delete this problem?');">
+                    <button class="btn btn-sm btn-outline-danger mt-1">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</section>
+

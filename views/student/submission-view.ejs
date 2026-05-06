@@ -1,0 +1,66 @@
+<% layout('layouts/main') %>
+<section class="container-fluid py-4">
+  <div class="page-heading mb-4">
+    <div>
+      <span class="eyebrow">My Submission</span>
+      <h1><%= submission.problem.title %></h1>
+    </div>
+    <a href="/problems/<%= submission.problem._id %>" class="btn btn-outline-secondary">Back to Problem</a>
+  </div>
+
+  <div class="row g-3">
+    <!-- Submission Info -->
+    <div class="col-lg-6">
+      <div class="form-panel mb-3">
+        <h3 class="h5 mb-3">Submission Details</h3>
+        <p class="mb-1"><strong>Problem:</strong> <%= submission.problem.title %></p>
+        <p class="mb-1"><strong>Language:</strong> <span class="badge text-bg-info"><%= submission.language.toUpperCase() %></span></p>
+        <p class="mb-1"><strong>Submitted:</strong> <%= new Date(submission.submittedAt).toLocaleString() %></p>
+        
+        <% if (submission.status === 'reviewed') { %>
+          <p class="mb-1"><strong>Status:</strong> <span class="badge text-bg-success">Reviewed</span></p>
+          <p class="mb-1"><strong>Marks Awarded:</strong> <strong class="text-success"><%= submission.marksAwarded %>/100</strong></p>
+          <p class="mb-0"><strong>Reviewed By:</strong> <%= submission.reviewedBy?.name || 'Staff' %></p>
+        <% } else { %>
+          <p class="mb-0"><strong>Status:</strong> <span class="badge text-bg-warning">Pending Review</span></p>
+        <% } %>
+      </div>
+
+      <!-- Submitted Code -->
+      <div class="form-panel">
+        <h3 class="h5 mb-3">Your Code</h3>
+        <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto; font-size: 12px;"><code><%= submission.code %></code></pre>
+      </div>
+    </div>
+
+    <!-- Teacher Feedback -->
+    <div class="col-lg-6">
+      <% if (submission.status === 'reviewed') { %>
+        <!-- Teacher Comment -->
+        <div class="form-panel mb-3">
+          <h3 class="h5 mb-3">Teacher Feedback</h3>
+          <div class="alert alert-info">
+            <p><%= submission.teacherComment || 'No feedback provided' %></p>
+          </div>
+        </div>
+
+        <!-- Corrected Code (if provided) -->
+        <% if (submission.correctedCode) { %>
+          <div class="form-panel">
+            <h3 class="h5 mb-3">Corrected Code</h3>
+            <p class="small text-muted mb-2">Your teacher has provided a corrected version:</p>
+            <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto; font-size: 12px;"><code><%= submission.correctedCode %></code></pre>
+          </div>
+        <% } %>
+      <% } else { %>
+        <div class="form-panel">
+          <div class="alert alert-warning">
+            <i class="fa-solid fa-clock me-2"></i>
+            <strong>Waiting for Review</strong>
+            <p class="mb-0 mt-2">Your code has been submitted and is waiting for your teacher's review. You will see feedback and marks here once the review is complete.</p>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</section>

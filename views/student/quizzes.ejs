@@ -1,0 +1,141 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <% const examTypeLabels = { quiz: 'Quiz', 'true-false': 'True/False', 'short-answer': 'Short Question', 'coding-test': 'Coding Exam' }; %>
+    <% const browseGroups = groupedQuizzes || []; %>
+    <% const currentType = selectedType || query.type || 'all'; %>
+    <% const currentDifficulty = selectedDifficulty || query.difficulty || ''; %>
+    <% const currentTeacherId = selectedTeacherId || query.teacher || 'all'; %>
+    <% const buildCategoryLink = (categoryValue) => `/enrollments/browse?type=${encodeURIComponent(currentType)}&teacher=${encodeURIComponent(currentTeacherId)}&category=${encodeURIComponent(categoryValue)}${currentDifficulty ? `&difficulty=${encodeURIComponent(currentDifficulty)}` : ''}`; %>
+    <% const buildTeacherLink = (teacherValue) => `/enrollments/browse?type=${encodeURIComponent(currentType)}&teacher=${encodeURIComponent(teacherValue)}&category=all${currentDifficulty ? `&difficulty=${encodeURIComponent(currentDifficulty)}` : ''}`; %>
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Student</span>
+        <h1>Browse Exams</h1>
+        <p>Choose a teacher first, then browse only the exams that teacher created so the attempt list stays focused and easier to understand.</p>
+      </div>
+      <div class="toolbar">
+        <a href="/enrollments/my-quizzes" class="btn btn-primary">My Exams</a>
+      </div>
+    </div>
+
+    <form class="filter-bar" method="GET" action="/enrollments/browse">
+      <select class="form-select" name="type">
+        <option value="all" <%= (selectedType || query.type || 'all') === 'all' ? 'selected' : '' %>>All types</option>
+        <option value="quiz" <%= (selectedType || query.type) === 'quiz' ? 'selected' : '' %>>Quiz (MCQ / Mixed)</option>
+        <option value="true-false" <%= (selectedType || query.type) === 'true-false' ? 'selected' : '' %>>True / False</option>
+        <option value="short-answer" <%= (selectedType || query.type) === 'short-answer' ? 'selected' : '' %>>Short Question</option>
+        <option value="coding-test" <%= (selectedType || query.type) === 'coding-test' ? 'selected' : '' %>>Coding Exam</option>
+      </select>
+      <select class="form-select" name="teacher">
+        <option value="all" <%= (selectedTeacherId || query.teacher || 'all') === 'all' ? 'selected' : '' %>>All teachers</option>
+        <% (teacherOptions || []).forEach((teacher) => { %>
+          <option value="<%= teacher.id %>" <%= (selectedTeacherId || query.teacher) === teacher.id ? 'selected' : '' %>><%= teacher.name %></option>
+        <% }) %>
+      </select>
+      <select class="form-select" name="category">
+        <option value="all" <%= (selectedCategory || query.category || 'all') === 'all' ? 'selected' : '' %>>All categories</option>
+        <% (categories || []).forEach((cat) => { %>
+          <option value="<%= cat %>" <%= (selectedCategory || query.category) === cat ? 'selected' : '' %>><%= cat %></option>
+        <% }) %>
+      </select>
+      <select class="form-select" name="difficulty">
+        <option value="">All difficulties</option>
+        <% ['Easy', 'Medium', 'Hard'].forEach((level) => { %>
+          <option value="<%= level %>" <%= (selectedDifficulty || query.difficulty) === level ? 'selected' : '' %>><%= level %></option>
+        <% }) %>
+      </select>
+      <button class="btn btn-outline-primary" type="submit">
+        <i class="fas fa-sliders"></i>
+        Filter
+      </button>
+    </form>
+
+    <% if ((teacherOptions || []).length > 0) { %>
+      <div class="chip-group">
+        <a class="filter-chip <%= (selectedTeacherId || query.teacher || 'all') === 'all' ? 'is-active' : '' %>" href="<%= buildTeacherLink('all') %>">All teachers</a>
+        <% teacherOptions.forEach((teacher) => { %>
+          <a class="filter-chip <%= (selectedTeacherId || query.teacher) === teacher.id ? 'is-active' : '' %>" href="<%= buildTeacherLink(teacher.id) %>"><%= teacher.name %></a>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <% if ((categories || []).length > 0) { %>
+      <div class="chip-group">
+        <a class="filter-chip <%= (selectedCategory || query.category || 'all') === 'all' ? 'is-active' : '' %>" href="<%= buildCategoryLink('all') %>">All categories</a>
+        <% categories.forEach((cat) => { %>
+          <a class="filter-chip <%= (selectedCategory || query.category) === cat ? 'is-active' : '' %>" href="<%= buildCategoryLink(cat) %>"><%= cat %></a>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <% if (browseGroups.length === 0) { %>
+      <div class="empty-state">
+        <h3>No exams matched these filters</h3>
+        <p>Try broadening the teacher, category, difficulty, or exam type to see more options.</p>
+      </div>
+    <% } else { %>
+      <% browseGroups.forEach((group) => { %>
+        <section class="table-card table-shell">
+          <div class="panel-header">
+            <div class="panel-header__copy">
+              <span class="eyebrow">Category</span>
+              <h2><%= group.category %></h2>
+              <p>
+                <%= group.quizzes.length %> published exam<%= group.quizzes.length === 1 ? '' : 's' %> available
+                <% if (selectedTeacherName) { %>
+                  from <strong><%= selectedTeacherName %></strong>
+                <% } else { %>
+                  in this subject
+                <% } %>.
+              </p>
+            </div>
+            <span class="status-pill approved"><%= group.quizzes.length %> available</span>
+          </div>
+
+          <div class="action-grid quiz-browse-grid">
+            <% group.quizzes.forEach((quiz) => { %>
+              <% const isEnrolled = (enrolledQuizIds || []).includes(String(quiz._id)); %>
+              <article class="quiz-card">
+                <div class="quiz-card__thumbnail">
+                  <% if (quiz.thumbnailUrl) { %>
+                    <img src="<%= quiz.thumbnailUrl %>" alt="<%= quiz.title %> thumbnail" loading="lazy">
+                  <% } else { %>
+                    <div class="quiz-card__thumbnail-placeholder">
+                      <i class="fas fa-image"></i>
+                    </div>
+                  <% } %>
+                </div>
+                <div class="quiz-card__meta">
+                  <span class="badge text-bg-light"><%= group.category %></span>
+                  <span class="badge text-bg-secondary"><%= examTypeLabels[quiz.examType || 'quiz'] %></span>
+                  <span class="badge text-bg-primary"><%= quiz.difficulty %></span>
+                </div>
+                <div class="quiz-card__copy">
+                  <h2><%= quiz.title %></h2>
+                  <p class="mt-2"><%= quiz.description || 'No description provided yet.' %></p>
+                </div>
+                <div class="quiz-card__facts">
+                  <span><i class="fas fa-clock me-2"></i><%= quiz.duration %> minutes</span>
+                  <span><i class="fas fa-layer-group me-2"></i><%= quiz.totalMarks %> total marks</span>
+                  <span><i class="fas fa-bullseye me-2"></i>Pass mark <%= quiz.passingMarks %>%</span>
+                  <span><i class="fas fa-user-tie me-2"></i><%= quiz.createdBy?.name || 'Teacher' %></span>
+                </div>
+                <div class="quiz-card__actions">
+                  <% if (isEnrolled) { %>
+                    <a class="btn btn-primary btn-sm" href="/student/quizzes/<%= quiz._id %>/take">Attempt now</a>
+                  <% } else { %>
+                    <form action="/enrollments/<%= quiz._id %>/enroll" method="POST">
+                      <button class="btn btn-success btn-sm" type="submit">Enroll</button>
+                    </form>
+                  <% } %>
+                  <a class="btn btn-outline-secondary btn-sm" href="/student/quizzes/<%= quiz._id %>/leaderboard">Leaderboard</a>
+                </div>
+              </article>
+            <% }) %>
+          </div>
+        </section>
+      <% }) %>
+    <% } %>
+  </div>
+</section>

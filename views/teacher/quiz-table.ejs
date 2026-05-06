@@ -1,0 +1,43 @@
+<div class="table-responsive">
+  <table class="table align-middle">
+    <% const examTypeLabels = { quiz: 'Quiz', 'true-false': 'True/False', 'short-answer': 'Short Question', 'coding-test': 'Coding Exam' }; %>
+    <thead><tr><th>Title</th><th>Type</th><th>Category</th><th>Enrolled</th><th>Marks</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+    <tbody>
+      <% if (quizzes.length === 0) { %><tr><td colspan="7" class="text-center text-muted py-4">No quizzes yet.</td></tr><% } %>
+      <% quizzes.forEach((quiz) => { %>
+        <tr>
+          <td>
+            <div class="quiz-table-title">
+              <% if (quiz.thumbnailUrl) { %>
+                <img src="<%= quiz.thumbnailUrl %>" alt="<%= quiz.title %> thumbnail" loading="lazy">
+              <% } else { %>
+                <span class="quiz-table-title__placeholder"><i class="fas fa-image"></i></span>
+              <% } %>
+              <div>
+                <strong><%= quiz.title %></strong>
+                <div class="small text-muted"><%= quiz.duration %> minutes · <%= quiz.completedCount || 0 %> completed</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="badge text-bg-secondary"><%= examTypeLabels[quiz.examType || 'quiz'] %></span></td>
+          <td><%= quiz.category %></td>
+          <td><%= quiz.enrolledCount || 0 %></td>
+          <td><%= quiz.totalMarks %></td>
+          <td><span class="badge <%= quiz.status === 'published' ? 'text-bg-success' : 'text-bg-secondary' %>"><%= quiz.status %></span></td>
+          <td class="text-end">
+            <div class="action-stack">
+              <a class="btn btn-outline-primary" href="/teacher/quizzes/<%= quiz._id %>/edit">Edit</a>
+              <a class="btn btn-outline-secondary" href="/teacher/quizzes/<%= quiz._id %>/attempts">Attempts</a>
+              <a class="btn btn-outline-secondary" href="/teacher/quizzes/<%= quiz._id %>/analytics">Analytics</a>
+              <a class="btn btn-outline-secondary" href="/teacher/quizzes/<%= quiz._id %>/leaderboard">Leaderboard</a>
+            </div>
+            <div class="action-stack mt-2">
+              <form action="/teacher/quizzes/<%= quiz._id %>/publish?_method=PATCH" method="POST" class="inline-form"><button class="btn btn-outline-success"><%= quiz.status === 'published' ? 'Unpublish' : 'Publish' %></button></form>
+              <form action="/teacher/quizzes/<%= quiz._id %>?_method=DELETE" method="POST" class="inline-form" onsubmit="return confirm('Delete this quiz?')"><button class="btn btn-outline-danger">Delete</button></form>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

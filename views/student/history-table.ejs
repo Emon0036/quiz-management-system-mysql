@@ -1,0 +1,17 @@
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead><tr><th>Quiz</th><th>Score</th><th>Status</th><th>Date</th><th></th></tr></thead>
+    <tbody>
+      <% if (attempts.length === 0) { %><tr><td colspan="5" class="text-center text-muted py-4">No attempts yet.</td></tr><% } %>
+      <% attempts.forEach((attempt) => { %>
+        <tr>
+          <td><strong><%= attempt.quiz.title %></strong><div class="small text-muted"><%= attempt.quiz.category %></div></td>
+          <td><%= attempt.score %>/<%= attempt.totalMarks %> (<%= attempt.percentage %>%)</td>
+          <td><span class="badge text-bg-<%= attempt.status === 'pending-review' ? 'warning' : attempt.passed ? 'success' : 'danger' %>"><%= attempt.status === 'pending-review' ? 'pending' : attempt.passed ? 'pass' : 'fail' %></span></td>
+          <td><%= attempt.submittedAt.toLocaleString() %></td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/student/results/<%= attempt._id %>">Open Result</a></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

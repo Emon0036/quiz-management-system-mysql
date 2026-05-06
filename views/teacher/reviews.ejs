@@ -1,0 +1,51 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Teacher</span>
+        <h1>Pending Reviews</h1>
+        <p>Manual grading queue for written and coding responses that still need a decision.</p>
+      </div>
+      <a href="/teacher/quizzes" class="btn btn-outline-secondary">Back to Quizzes</a>
+    </div>
+
+    <div class="table-card table-shell">
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Exam</th>
+              <th>Score</th>
+              <th>Submitted</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!attempts || attempts.length === 0) { %>
+              <tr><td colspan="5" class="text-center text-muted py-4">No answers are waiting for review.</td></tr>
+            <% } %>
+            <% (attempts || []).forEach((attempt) => { %>
+              <tr>
+                <td>
+                  <strong><%= attempt.student?.name || 'Unknown student' %></strong>
+                  <div class="small text-muted"><%= attempt.student?.email || '' %></div>
+                </td>
+                <td>
+                  <strong><%= attempt.quiz?.title || 'Deleted exam' %></strong>
+                  <div class="small text-muted"><%= attempt.quiz?.category || '' %></div>
+                </td>
+                <td><%= attempt.score %>/<%= attempt.totalMarks %> (<%= attempt.percentage %>%)</td>
+                <td><%= attempt.submittedAt ? attempt.submittedAt.toLocaleString() : '' %></td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-primary" href="/teacher/attempts/<%= attempt._id %>/review">Review</a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>

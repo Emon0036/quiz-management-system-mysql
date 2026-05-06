@@ -1,0 +1,64 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Student</span>
+        <h1>Review Center</h1>
+        <p>Track submissions that are waiting for teacher feedback and reopen reviewed answers when they are ready.</p>
+      </div>
+      <a href="/student/history" class="btn btn-outline-primary">View Full History</a>
+    </div>
+
+    <% if (!reviewAttempts.length) { %>
+      <div class="empty-state">
+        <h3>No review submissions yet</h3>
+        <p>Take a quiz with written or coding answers and the review queue will appear here.</p>
+      </div>
+    <% } else { %>
+      <div class="table-card table-shell">
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Exam</th>
+                <th>Status</th>
+                <th>Score / Status</th>
+                <th>Submitted</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% reviewAttempts.forEach((attempt) => { %>
+                <tr>
+                  <td>
+                    <strong><%= attempt.quiz?.title || 'Unknown Exam' %></strong>
+                    <div class="small text-muted"><%= attempt.quiz?.category || 'General' %></div>
+                  </td>
+                  <td>
+                    <% if (attempt.status === 'pending-review') { %>
+                      <span class="badge text-bg-warning">Pending Review</span>
+                    <% } else { %>
+                      <span class="badge text-bg-success">Reviewed</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (attempt.status === 'pending-review') { %>
+                      <span class="text-muted">Awaiting feedback</span>
+                    <% } else { %>
+                      <span><%= attempt.percentage %>%</span>
+                    <% } %>
+                  </td>
+                  <td><%= new Date(attempt.submittedAt).toLocaleDateString() %></td>
+                  <td class="text-end">
+                    <a href="/student/results/<%= attempt._id %>" class="btn btn-sm btn-outline-primary">View Review</a>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</section>

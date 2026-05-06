@@ -1,0 +1,19 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Leaderboard</span>
+        <h1><%= quiz.title %></h1>
+        <p>See the top performers for this exam and compare your best attempt against the field.</p>
+      </div>
+      <% if (myEntry) { %>
+        <div class="rank-pill">Your rank: #<%= myEntry.rank %></div>
+      <% } %>
+    </div>
+
+    <div class="table-card table-shell">
+      <%- include('leaderboard-table', { leaderboard }) %>
+    </div>
+  </div>
+</section>

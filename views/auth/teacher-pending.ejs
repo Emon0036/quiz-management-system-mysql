@@ -1,0 +1,19 @@
+<% layout('layouts/main') %>
+<section class="container py-5 narrow">
+  <div class="empty-state text-center">
+    <span class="eyebrow">Teacher access</span>
+    <% if (currentUser.teacherStatus === 'rejected') { %>
+      <h1 class="h3 mt-2">Your teacher request was not approved</h1>
+      <p class="text-muted mb-4">An admin needs to approve your account before you can create quizzes. You can still use the app after an admin changes your access.</p>
+    <% } else { %>
+      <h1 class="h3 mt-2">Waiting for admin approval</h1>
+      <p class="text-muted mb-4">Your teacher registration has been sent to the admin. Once approved, your teacher dashboard and quiz tools will open automatically after login.</p>
+    <% } %>
+    <form action="/auth/logout" method="POST">
+      <% if (currentTabId) { %>
+        <input type="hidden" name="tab" value="<%= currentTabId %>">
+      <% } %>
+      <button class="btn btn-outline-primary" type="submit">Logout</button>
+    </form>
+  </div>
+</section>

@@ -1,0 +1,183 @@
+<% layout('layouts/main') %>
+
+<section class="auth-screen">
+  <div class="auth-stage animate-fade-in">
+    <aside class="auth-showcase auth-showcase--accent">
+      <div class="auth-showcase__content">
+        <a href="/" class="auth-brand">
+          <span class="auth-brand__mark">
+            <i class="fa-brands fa-joomla"></i>
+          </span>
+          <span class="auth-brand__copy">
+            <strong><%= appName %></strong>
+            <small>Assessment made clearer</small>
+          </span>
+        </a>
+
+        <div class="auth-showcase__intro">
+          <span class="auth-kicker">Create a student account</span>
+          <h1>Join the platform</h1>
+          <p>Register to enroll in exams, check scores, and follow your review history from one clear workspace.</p>
+        </div>
+
+        <div class="auth-feature-list">
+          <article class="auth-feature">
+            <span class="auth-feature__icon"><i class="fas fa-book-open"></i></span>
+            <div>
+              <h3>Browse Published Exams</h3>
+              <p>Open available quizzes directly from your dashboard.</p>
+            </div>
+          </article>
+
+          <article class="auth-feature">
+            <span class="auth-feature__icon"><i class="fas fa-chart-column"></i></span>
+            <div>
+              <h3>Results and Progress</h3>
+              <p>Track your scores, attempts, and overall performance over time.</p>
+            </div>
+          </article>
+
+          <article class="auth-feature">
+            <span class="auth-feature__icon"><i class="fas fa-trophy"></i></span>
+            <div>
+              <h3>Leaderboard Access</h3>
+              <p>Compare your performance on quiz and global rankings.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="auth-showcase__footer">
+        <div class="auth-showcase__note">
+          <strong>Role-based access is already built in.</strong>
+          <p>Students can register directly, while teacher access stays under admin approval.</p>
+        </div>
+      </div>
+    </aside>
+
+    <section class="auth-form-panel">
+      <div class="auth-form-card">
+        <a href="/" class="auth-brand auth-brand--mobile">
+          <span class="auth-brand__mark">
+            <i class="fa-brands fa-joomla"></i>
+          </span>
+          <span class="auth-brand__copy auth-brand__copy--dark">
+            <strong><%= appName %></strong>
+            <small>Assessment made clearer</small>
+          </span>
+        </a>
+
+        <div class="auth-form-header">
+          <h2>Create your account</h2>
+          <p>Join as a student and start using the platform.</p>
+        </div>
+
+        <form action="/auth/register" method="POST" class="auth-form-stack" x-data="{ showPassword: false, showConfirmPassword: false }">
+          <label class="auth-field">
+            <span>Full name</span>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Enter your full name"
+              value="<%= typeof name !== 'undefined' ? name : '' %>"
+            >
+          </label>
+
+          <label class="auth-field">
+            <span>Email address</span>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              class="form-input"
+              placeholder="Enter your email"
+              value="<%= typeof email !== 'undefined' ? email : '' %>"
+            >
+          </label>
+
+          <label class="auth-field">
+            <span>Password</span>
+            <div class="auth-input-wrap">
+              <input
+                id="password"
+                name="password"
+                :type="showPassword ? 'text' : 'password'"
+                required
+                minlength="6"
+                class="form-input auth-input-pad"
+                placeholder="Create a password"
+              >
+              <button
+                type="button"
+                @click="showPassword = !showPassword"
+                class="auth-input-toggle"
+                aria-label="Toggle password visibility"
+              >
+                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </button>
+            </div>
+            <small class="auth-field__hint">Must be at least 6 characters long.</small>
+          </label>
+
+          <label class="auth-field">
+            <span>Confirm password</span>
+            <div class="auth-input-wrap">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                :type="showConfirmPassword ? 'text' : 'password'"
+                required
+                minlength="6"
+                class="form-input auth-input-pad"
+                placeholder="Confirm your password"
+              >
+              <button
+                type="button"
+                @click="showConfirmPassword = !showConfirmPassword"
+                class="auth-input-toggle"
+                aria-label="Toggle password visibility"
+              >
+                <i :class="showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </button>
+            </div>
+          </label>
+
+          <label for="terms" class="auth-check auth-check--start">
+            <input
+              id="terms"
+              name="terms"
+              type="checkbox"
+              required
+              class="form-check-input"
+            >
+            <span>
+              I agree to the
+              <a href="/terms" class="auth-subtle-link">Terms of Service</a>
+              and
+              <a href="/privacy" class="auth-subtle-link">Privacy Policy</a>
+            </span>
+          </label>
+
+          <button type="submit" class="btn btn-primary auth-submit">
+            <i class="fas fa-user-plus"></i>
+            <span>Create Account</span>
+          </button>
+        </form>
+
+        <p class="auth-alt-copy">
+          Already have an account?
+          <a href="/auth/login" class="auth-subtle-link">Sign in</a>
+        </p>
+
+        <div class="auth-helper-card">
+          <h3>Teacher Registration</h3>
+          <p>Teachers must be approved by administrators. Contact your admin or sign up as a student first.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>

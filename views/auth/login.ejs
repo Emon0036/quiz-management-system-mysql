@@ -1,0 +1,151 @@
+<% layout('layouts/main') %>
+
+<section class="auth-screen">
+  <div class="auth-stage animate-fade-in">
+    <aside class="auth-showcase">
+      <div class="auth-showcase__content">
+        <a href="/" class="auth-brand">
+          <span class="auth-brand__mark">
+            <i class="fa-brands fa-joomla"></i>
+          </span>
+          <span class="auth-brand__copy">
+            <strong><%= appName %></strong>
+            <small>Assessment made clearer</small>
+          </span>
+        </a>
+
+        <div class="auth-showcase__intro">
+          <span class="auth-kicker">Student and teacher access</span>
+          <h1>Welcome back</h1>
+          <p>Sign in to continue quizzes, review results, and manage exam work from one place.</p>
+        </div>
+
+        <div class="auth-feature-list">
+          <article class="auth-feature">
+            <span class="auth-feature__icon"><i class="fas fa-file-circle-check"></i></span>
+            <div>
+              <h3>Quiz Attempts</h3>
+              <p>Take published quizzes and keep track of submitted work.</p>
+            </div>
+          </article>
+
+          <article class="auth-feature">
+            <span class="auth-feature__icon"><i class="fas fa-clipboard-check"></i></span>
+            <div>
+              <h3>Teacher Review</h3>
+              <p>Check feedback and review-ready submissions without extra steps.</p>
+            </div>
+          </article>
+
+          <article class="auth-feature">
+            <span class="auth-feature__icon"><i class="fas fa-chart-line"></i></span>
+            <div>
+              <h3>Progress and Rankings</h3>
+              <p>Open your history, score summaries, and leaderboard position.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="auth-showcase__footer">
+        <div class="auth-showcase__note">
+          <strong>Built around the features already in your project.</strong>
+          <p>Students can take exams and track results. Teachers can create quizzes and review submissions.</p>
+        </div>
+      </div>
+    </aside>
+
+    <section class="auth-form-panel">
+      <div class="auth-form-card">
+        <a href="/" class="auth-brand auth-brand--mobile">
+          <span class="auth-brand__mark">
+            <i class="fa-brands fa-joomla"></i>
+          </span>
+          <span class="auth-brand__copy auth-brand__copy--dark">
+            <strong><%= appName %></strong>
+            <small>Assessment made clearer</small>
+          </span>
+        </a>
+
+        <div class="auth-form-header">
+          <h2>Sign in to your account</h2>
+          <p>Enter your credentials to access your dashboard.</p>
+        </div>
+
+        <form action="/auth/login" method="POST" class="auth-form-stack" x-data="{ showPassword: false }">
+          <% if (currentTabId) { %>
+            <input type="hidden" name="tab" value="<%= currentTabId %>">
+          <% } %>
+
+          <label class="auth-field">
+            <span>Email address</span>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              class="form-input"
+              placeholder="Enter your email"
+              value="<%= typeof email !== 'undefined' ? email : '' %>"
+            >
+          </label>
+
+          <label class="auth-field">
+            <span>Password</span>
+            <div class="auth-input-wrap">
+              <input
+                id="password"
+                name="password"
+                :type="showPassword ? 'text' : 'password'"
+                required
+                class="form-input auth-input-pad"
+                placeholder="Enter your password"
+              >
+              <button
+                type="button"
+                @click="showPassword = !showPassword"
+                class="auth-input-toggle"
+                aria-label="Toggle password visibility"
+              >
+                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+              </button>
+            </div>
+          </label>
+
+          <div class="auth-inline-row">
+            <label for="remember" class="auth-check">
+              <input
+                id="remember"
+                name="remember"
+                type="checkbox"
+                class="form-check-input"
+              >
+              <span>Remember me</span>
+            </label>
+
+            <a href="/auth/forgot-password" class="auth-subtle-link">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn btn-primary auth-submit">
+            <i class="fas fa-right-to-bracket"></i>
+            <span>Sign In</span>
+          </button>
+        </form>
+
+        <p class="auth-alt-copy">
+          Don't have an account?
+          <a href="/auth/register" class="auth-subtle-link">Sign up</a>
+        </p>
+
+        <% if (process.env.NODE_ENV === 'development') { %>
+          <div class="auth-helper-card">
+            <h3>Demo Credentials</h3>
+            <p><strong>Admin:</strong> admin@example.com / admin123</p>
+            <p><strong>Teacher:</strong> teacher@example.com / teacher123</p>
+            <p><strong>Student:</strong> student@example.com / student123</p>
+          </div>
+        <% } %>
+      </div>
+    </section>
+  </div>
+</section>

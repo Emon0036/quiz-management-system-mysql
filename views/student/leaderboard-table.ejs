@@ -1,0 +1,17 @@
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead><tr><th>Rank</th><th>Student</th><th>Best Score</th><th>Best %</th><th>Attempts</th></tr></thead>
+    <tbody>
+      <% if (!leaderboard || leaderboard.entries.length === 0) { %><tr><td colspan="5" class="text-center text-muted py-4">Leaderboard is empty.</td></tr><% } %>
+      <% leaderboard && leaderboard.entries.forEach((entry) => { %>
+        <tr>
+          <td><strong>#<%= entry.rank %></strong></td>
+          <td><%= entry.student.name %><div class="small text-muted"><%= entry.student.email %></div></td>
+          <td><%= entry.bestScore %></td>
+          <td><%= entry.bestPercentage %>%</td>
+          <td><%= entry.attemptCount %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

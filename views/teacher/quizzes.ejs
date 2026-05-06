@@ -1,0 +1,37 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <% const publishedCount = (quizzes || []).filter((quiz) => quiz.status === 'published').length; %>
+    <% const draftCount = (quizzes || []).filter((quiz) => quiz.status !== 'published').length; %>
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Teacher</span>
+        <h1>Manage Quizzes</h1>
+        <p>Update quiz details, publish drafts, check attempts, and jump into analytics for every assessment you own.</p>
+      </div>
+      <a href="/teacher/quizzes/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i>Create Quiz</a>
+    </div>
+
+    <div class="summary-grid">
+      <article class="summary-card">
+        <span>Total Quizzes</span>
+        <strong><%= quizzes.length %></strong>
+        <small>all quizzes currently in your library</small>
+      </article>
+      <article class="summary-card">
+        <span>Published</span>
+        <strong><%= publishedCount %></strong>
+        <small>quizzes available to students now</small>
+      </article>
+      <article class="summary-card">
+        <span>Drafts</span>
+        <strong><%= draftCount %></strong>
+        <small>assessments waiting to be published</small>
+      </article>
+    </div>
+
+    <div class="table-card table-shell">
+      <%- include('quiz-table', { quizzes }) %>
+    </div>
+  </div>
+</section>

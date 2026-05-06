@@ -1,0 +1,199 @@
+<% layout('layouts/main') %>
+<section class="container-fluid py-4">
+  <div class="page-heading mb-4">
+    <div><span class="eyebrow">Coding Challenge</span><h1><%= problem.title %></h1></div>
+    <div class="d-flex gap-2">
+      <a href="/problems" class="btn btn-outline-secondary">Back to Problems</a>
+      <% if (currentUser && (currentUser.role === 'teacher' || currentUser.role === 'admin')) { %>
+        <a href="/submissions/problem/<%= problem._id %>" class="btn btn-outline-info">
+          <i class="fa-solid fa-comments me-2"></i>View Submissions
+        </a>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Problem Description Panel (Left Side) -->
+    <div class="col-lg-5">
+      <div class="form-panel sticky-top" style="top: 20px;">
+        <h2 class="h5 mb-3">Problem Description</h2>
+        <p><%= problem.description %></p>
+        
+        <!-- Input Format Section -->
+        <% if (problem.inputFormat) { %>
+          <div class="mt-4 pt-4 border-top">
+            <h3 class="h6 text-muted">Input Format</h3>
+            <p class="small"><%= problem.inputFormat %></p>
+          </div>
+        <% } %>
+
+        <!-- Output Format Section -->
+        <% if (problem.outputFormat) { %>
+          <div class="mt-3">
+            <h3 class="h6 text-muted">Output Format</h3>
+            <p class="small"><%= problem.outputFormat %></p>
+          </div>
+        <% } %>
+
+        <!-- Sample Test Case Section -->
+        <% if (problem.sampleInput || problem.sampleOutput) { %>
+          <div class="mt-4 pt-4 border-top">
+            <h3 class="h6 mb-2">Sample Test Case</h3>
+            <% if (problem.sampleInput) { %>
+              <p class="small mb-1"><strong>Input:</strong></p>
+              <pre class="bg-light p-2 rounded small" style="max-height: 100px; overflow-y: auto;"><%= problem.sampleInput %></pre>
+            <% } %>
+            <% if (problem.sampleOutput) { %>
+              <p class="small mb-1 mt-2"><strong>Expected Output:</strong></p>
+              <pre class="bg-light p-2 rounded small" style="max-height: 100px; overflow-y: auto;"><%= problem.sampleOutput %></pre>
+            <% } %>
+          </div>
+        <% } %>
+
+        <!-- Difficulty Badge -->
+        <div class="mt-4">
+          <span class="badge text-bg-<%= problem.difficulty === 'Easy' ? 'success' : problem.difficulty === 'Medium' ? 'warning' : 'danger' %>">
+            <%= problem.difficulty %> Difficulty
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Code Editor Panel (Right Side) -->
+    <div class="col-lg-7">
+      <% if (currentUser && currentUser.role === 'student') { %>
+        <form onsubmit="submitCode(event, '<%= problem._id %>')">
+          <!-- Language Selection -->
+          <div class="form-panel mb-3">
+            <label class="form-label mb-2"><strong>Programming Language</strong></label>
+            <select id="language" name="language" class="form-select" required>
+              <option value="c">C</option>
+              <option value="cpp">C++</option>
+              <option value="java">Java</option>
+              <option value="javascript">JavaScript</option>
+              <option value="python" selected>Python</option>
+            </select>
+          </div>
+
+          <!-- Code Editor -->
+          <div class="form-panel mb-3">
+            <label class="form-label mb-2"><strong>Write Your Code</strong></label>
+            <textarea id="code" name="code" class="form-control font-monospace" rows="12" placeholder="// Write your code here" style="font-family: 'Courier New', monospace; font-size: 13px;" required></textarea>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="d-grid gap-2 d-sm-flex mb-3">
+            <button type="submit" class="btn btn-success btn-lg flex-grow-1">
+              <i class="fa-solid fa-paper-plane me-2"></i>Submit for Review
+            </button>
+          </div>
+
+          <!-- Status Message -->
+          <div id="status" class="mb-3"></div>
+        </form>
+
+        <!-- Previous Submissions (if any) -->
+        <div id="submissionsContainer"></div>
+      <% } else if (currentUser && (currentUser.role === 'teacher' || currentUser.role === 'admin')) { %>
+        <div class="alert alert-info">
+          <i class="fa-solid fa-info-circle me-2"></i>
+          <strong>Teacher View</strong> - Use the "View Submissions" button above to review student submissions for this problem.
+        </div>
+      <% } else { %>
+        <div class="alert alert-warning">
+          <i class="fa-solid fa-lock me-2"></i>
+          Please <a href="/auth/login">login</a> to submit code.
+        </div>
+      <% } %>
+    </div>
+  </div>
+</section>
+
+<% if (currentUser && currentUser.role === 'student') { %>
+  <script>
+    async function submitCode(event, problemId) {
+      event.preventDefault();
+      
+      const code = document.getElementById('code').value;
+      const language = document.getElementById('language').value;
+      const statusDiv = document.getElementById('status');
+
+      if (!code.trim()) {
+        statusDiv.innerHTML = '<div class="alert alert-warning">Please write some code before submitting</div>';
+        return;
+      }
+
+      statusDiv.innerHTML = '<div class="alert alert-info"><i class="fa-solid fa-spinner fa-spin me-2"></i>Submitting...</div>';
+
+      try {
+        const response = await fetch('/submissions/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code, language, problemId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          statusDiv.innerHTML = `
+            <div class="alert alert-success">
+              <i class="fa-solid fa-check me-2"></i>
+              <strong>Submitted Successfully!</strong>
+              <p class="mb-0 mt-2">Your code has been submitted for teacher review.</p>
+              <p class="mb-0 small text-muted mt-2">Submission ID: ${data.submissionId}</p>
+            </div>
+          `;
+          // Clear the code editor
+          document.getElementById('code').value = '';
+          // Reload submissions list
+          loadSubmissions();
+        } else {
+          statusDiv.innerHTML = `<div class="alert alert-danger"><i class="fa-solid fa-exclamation-circle me-2"></i>${data.error || 'Failed to submit code'}</div>`;
+        }
+      } catch (error) {
+        statusDiv.innerHTML = `<div class="alert alert-danger"><i class="fa-solid fa-exclamation-circle me-2"></i>Error: ${error.message}</div>`;
+      }
+    }
+
+    async function loadSubmissions() {
+      try {
+        const response = await fetch('/submissions/history');
+        const data = await response.json();
+        
+        if (data.submissions && data.submissions.length > 0) {
+          const submissions = data.submissions.filter(s => s.problem._id === '<%= problem._id %>');
+          
+          if (submissions.length > 0) {
+            let html = '<div class="form-panel mt-4"><h3 class="h5 mb-3">Your Submissions</h3><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Submitted</th><th>Language</th><th>Status</th><th>Marks</th><th>Action</th></tr></thead><tbody>';
+            
+            submissions.forEach(sub => {
+              const date = new Date(sub.submittedAt).toLocaleString();
+              const statusBadge = sub.status === 'reviewed' ? '<span class="badge text-bg-success">Reviewed</span>' : '<span class="badge text-bg-warning">Pending</span>';
+              const marks = sub.status === 'reviewed' ? `<strong>${sub.marksAwarded}</strong>` : '-';
+              
+              html += `
+                <tr>
+                  <td>${date}</td>
+                  <td><small>${sub.language.toUpperCase()}</small></td>
+                  <td>${statusBadge}</td>
+                  <td>${marks}</td>
+                  <td><a href="/submissions/${sub._id}/view" class="btn btn-sm btn-outline-primary">View</a></td>
+                </tr>
+              `;
+            });
+            
+            html += '</tbody></table></div></div>';
+            document.getElementById('submissionsContainer').innerHTML = html;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading submissions:', error);
+      }
+    }
+
+    // Load submissions when page loads
+    document.addEventListener('DOMContentLoaded', loadSubmissions);
+  </script>
+<% } %>

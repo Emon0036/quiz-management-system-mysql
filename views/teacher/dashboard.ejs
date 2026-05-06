@@ -1,0 +1,311 @@
+<% layout('layouts/main') %>
+<%
+  const teacherStats = {
+    totalQuizzes: 0,
+    publishedQuizzes: 0,
+    draftQuizzes: 0,
+    totalAttempts: 0,
+    pendingReviews: 0,
+    ...(stats || {})
+  };
+  const teacherQuizSegments = [
+    {
+      label: 'Published',
+      detail: 'Visible to students now',
+      count: Number(teacherStats.publishedQuizzes || 0),
+      color: '#0e5c8b'
+    },
+    {
+      label: 'Drafts',
+      detail: 'Still being prepared',
+      count: Number(teacherStats.draftQuizzes || 0),
+      color: '#1c9b8f'
+    }
+  ];
+  const totalQuizMix = teacherQuizSegments.reduce((sum, segment) => sum + segment.count, 0);
+  const publishRate = totalQuizMix ? Math.round((Number(teacherStats.publishedQuizzes || 0) / totalQuizMix) * 100) : 0;
+  const averageAttempts = teacherStats.totalQuizzes
+    ? Math.round(Number(teacherStats.totalAttempts || 0) / Number(teacherStats.totalQuizzes || 1))
+    : 0;
+  let teacherChartFill = 'conic-gradient(rgba(67, 108, 140, 0.18) 0deg 360deg)';
+
+  if (totalQuizMix > 0) {
+    let currentAngle = 0;
+    teacherChartFill = `conic-gradient(${teacherQuizSegments
+      .filter((segment) => segment.count > 0)
+      .map((segment) => {
+        const startAngle = currentAngle;
+        currentAngle += (segment.count / totalQuizMix) * 360;
+        return `${segment.color} ${startAngle}deg ${currentAngle}deg`;
+      })
+      .join(', ')})`;
+  }
+
+  const focusHref = teacherStats.pendingReviews > 0
+    ? '/teacher/reviews'
+    : teacherStats.draftQuizzes > 0
+      ? '/teacher/quizzes'
+      : '/teacher/quizzes/new';
+  const focusIcon = teacherStats.pendingReviews > 0
+    ? 'fa-list-check'
+    : teacherStats.draftQuizzes > 0
+      ? 'fa-pen-to-square'
+      : 'fa-plus';
+  const focusTitle = teacherStats.pendingReviews > 0
+    ? 'Start with pending reviews'
+    : teacherStats.draftQuizzes > 0
+      ? 'Polish your drafts'
+      : 'Create the next quiz';
+  const focusCopy = teacherStats.pendingReviews > 0
+    ? `${teacherStats.pendingReviews} submission${teacherStats.pendingReviews === 1 ? '' : 's'} need manual grading.`
+    : teacherStats.draftQuizzes > 0
+      ? `${teacherStats.draftQuizzes} draft ${teacherStats.draftQuizzes === 1 ? 'quiz is' : 'quizzes are'} waiting to be published.`
+      : 'Your queue is clear. Add a new assessment when ready.';
+%>
+
+<section class="page-shell">
+  <div class="page-container page-stack dashboard-layers">
+    <section class="dashboard-hero dashboard-hero--compact animate-fade-in">
+      <div class="dashboard-hero__grid dashboard-hero__grid--compact">
+        <div class="dashboard-hero__content">
+          <span class="eyebrow">Teacher Dashboard</span>
+          <h1>Hi, <%= currentUser.name %>.</h1>
+          <p>Your teaching workspace is arranged by layers: focus queue, quiz health, workflows, and recent library updates.</p>
+          <div class="hero-action-row mt-4">
+            <a href="/teacher/quizzes/new" class="btn btn-primary">
+              <i class="fas fa-plus"></i>
+              Create quiz
+            </a>
+            <a href="/teacher/quizzes" class="btn btn-outline-primary">
+              <i class="fas fa-book"></i>
+              Quiz library
+            </a>
+          </div>
+        </div>
+
+        <aside class="dashboard-focus-card">
+          <span class="dashboard-layer-label">Today</span>
+          <div class="dashboard-focus-card__icon"><i class="fas <%= focusIcon %>"></i></div>
+          <h2><%= focusTitle %></h2>
+          <p><%= focusCopy %></p>
+          <a href="<%= focusHref %>" class="btn btn-outline-primary btn-sm">Open focus</a>
+        </aside>
+      </div>
+    </section>
+
+    <section class="dashboard-layer">
+      <div class="layer-header">
+        <div>
+          <span class="dashboard-layer-label">Layer 1</span>
+          <h2>At a glance</h2>
+        </div>
+        <a href="/teacher/reviews" class="btn btn-outline-primary btn-sm">Review queue</a>
+      </div>
+
+      <div class="metric-grid dashboard-metric-grid">
+        <article class="metric-card">
+          <div class="metric-card__top">
+            <div>
+              <span class="metric-card__label">Total Quizzes</span>
+              <strong class="metric-card__value"><%= teacherStats.totalQuizzes %></strong>
+              <small class="metric-card__meta">All assessments</small>
+            </div>
+            <span class="metric-card__icon"><i class="fas fa-book-open"></i></span>
+          </div>
+        </article>
+        <article class="metric-card">
+          <div class="metric-card__top">
+            <div>
+              <span class="metric-card__label">Published</span>
+              <strong class="metric-card__value"><%= teacherStats.publishedQuizzes %></strong>
+              <small class="metric-card__meta"><%= publishRate %>% of quiz library</small>
+            </div>
+            <span class="metric-card__icon"><i class="fas fa-bullhorn"></i></span>
+          </div>
+        </article>
+        <article class="metric-card">
+          <div class="metric-card__top">
+            <div>
+              <span class="metric-card__label">Attempts</span>
+              <strong class="metric-card__value"><%= teacherStats.totalAttempts %></strong>
+              <small class="metric-card__meta">Student submissions</small>
+            </div>
+            <span class="metric-card__icon"><i class="fas fa-file-signature"></i></span>
+          </div>
+        </article>
+        <article class="metric-card">
+          <div class="metric-card__top">
+            <div>
+              <span class="metric-card__label">Pending Reviews</span>
+              <strong class="metric-card__value"><%= teacherStats.pendingReviews %></strong>
+              <small class="metric-card__meta">Need teacher feedback</small>
+            </div>
+            <span class="metric-card__icon"><i class="fas fa-clipboard-check"></i></span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="dashboard-layer dashboard-layer-grid">
+      <article class="chart-card">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="dashboard-layer-label">Layer 2</span>
+            <h2>Quiz health</h2>
+            <p>A cleaner view of what is published, what is draft, and how active students are.</p>
+          </div>
+        </div>
+
+        <div class="chart-card__body">
+          <div class="donut-chart" style="--chart-fill: <%= teacherChartFill %>;">
+            <div class="donut-chart__center">
+              <strong class="donut-chart__value"><%= totalQuizMix %></strong>
+              <span class="donut-chart__label">Quizzes</span>
+            </div>
+          </div>
+
+          <div class="chart-legend">
+            <% teacherQuizSegments.forEach((segment) => { %>
+              <div class="legend-item">
+                <span class="legend-dot" style="background: <%= segment.color %>;"></span>
+                <div class="legend-copy">
+                  <strong><%= segment.label %></strong>
+                  <span><%= segment.detail %></span>
+                </div>
+                <span class="legend-value"><%= segment.count %></span>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      </article>
+
+      <aside class="dashboard-side-stack">
+        <div class="compact-stat-grid compact-stat-grid--stacked">
+          <article class="compact-stat">
+            <span>Publish Rate</span>
+            <strong><%= publishRate %>%</strong>
+            <small><%= teacherStats.publishedQuizzes %> live / <%= teacherStats.draftQuizzes %> draft</small>
+          </article>
+          <article class="compact-stat">
+            <span>Avg Attempts</span>
+            <strong><%= averageAttempts %></strong>
+            <small>Attempts per quiz</small>
+          </article>
+          <article class="compact-stat">
+            <span>Review Load</span>
+            <strong><%= teacherStats.pendingReviews %></strong>
+            <small>Manual grading items</small>
+          </article>
+        </div>
+
+        <div class="support-card">
+          <span class="dashboard-layer-label">Shortcuts</span>
+          <div class="support-list">
+            <a href="/teacher/quizzes/new"><i class="fas fa-plus"></i><span>Create a quiz</span></a>
+            <a href="/teacher/quizzes"><i class="fas fa-book"></i><span>Manage library</span></a>
+            <a href="/teacher/reviews"><i class="fas fa-list-check"></i><span>Review queue</span></a>
+            <a href="/problems/manage"><i class="fas fa-code"></i><span>Coding problems</span></a>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="dashboard-layer">
+      <div class="layer-header">
+        <div>
+          <span class="dashboard-layer-label">Layer 3</span>
+          <h2>Teaching workflows</h2>
+        </div>
+      </div>
+
+      <div class="action-grid action-grid--compact">
+        <a href="/teacher/quizzes/new" class="action-card">
+          <div class="action-card__top">
+            <div>
+              <span class="status-pill approved">Create</span>
+              <h3 class="mt-3">Build a new quiz</h3>
+              <p>Add details and questions.</p>
+            </div>
+            <span class="metric-card__icon"><i class="fas fa-plus"></i></span>
+          </div>
+          <span class="action-card__footer">Open builder <i class="fas fa-arrow-right"></i></span>
+        </a>
+
+        <a href="/teacher/quizzes" class="action-card">
+          <div class="action-card__top">
+            <div>
+              <span class="status-pill approved">Manage</span>
+              <h3 class="mt-3">Quiz library</h3>
+              <p>Edit, publish, or analyze.</p>
+            </div>
+            <span class="action-card__count"><%= teacherStats.totalQuizzes %></span>
+          </div>
+          <span class="action-card__footer">View library <i class="fas fa-arrow-right"></i></span>
+        </a>
+
+        <a href="/teacher/reviews" class="action-card">
+          <div class="action-card__top">
+            <div>
+              <span class="status-pill pending">Review</span>
+              <h3 class="mt-3">Manual grading</h3>
+              <p>Score answers and feedback.</p>
+            </div>
+            <span class="action-card__count"><%= teacherStats.pendingReviews %></span>
+          </div>
+          <span class="action-card__footer">Open queue <i class="fas fa-arrow-right"></i></span>
+        </a>
+
+        <a href="/problems/manage" class="action-card">
+          <div class="action-card__top">
+            <div>
+              <span class="status-pill approved">Coding</span>
+              <h3 class="mt-3">Problem bank</h3>
+              <p>Manage coding practice.</p>
+            </div>
+            <span class="metric-card__icon"><i class="fas fa-code"></i></span>
+          </div>
+          <span class="action-card__footer">Open problems <i class="fas fa-arrow-right"></i></span>
+        </a>
+      </div>
+    </section>
+
+    <section class="dashboard-layer">
+      <div class="layer-header">
+        <div>
+          <span class="dashboard-layer-label">Layer 4</span>
+          <h2>Recent quizzes</h2>
+        </div>
+        <a href="/teacher/quizzes" class="btn btn-outline-primary btn-sm">View all</a>
+      </div>
+
+      <% if (quizzes && quizzes.length > 0) { %>
+        <div class="activity-list activity-list--split">
+          <% quizzes.slice(0, 5).forEach((quiz) => { %>
+            <article class="activity-item">
+              <div class="activity-item__main">
+                <span class="activity-item__icon"><i class="fas fa-file-lines"></i></span>
+                <div>
+                  <p class="activity-item__title"><%= quiz.title %></p>
+                  <p class="activity-item__meta">
+                    <%= quiz.questions ? quiz.questions.length : 0 %> question<%= quiz.questions && quiz.questions.length === 1 ? '' : 's' %> &middot;
+                    <%= new Date(quiz.createdAt).toLocaleDateString() %>
+                  </p>
+                </div>
+              </div>
+              <div class="activity-score">
+                <strong><%= quiz.enrolledCount || 0 %></strong>
+                <span><%= quiz.status === 'published' ? 'Published' : 'Draft' %></span>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <h3>No quizzes yet</h3>
+          <p>Create your first quiz to start collecting student attempts and analytics.</p>
+          <a href="/teacher/quizzes/new" class="btn btn-primary mt-3">Create quiz</a>
+        </div>
+      <% } %>
+    </section>
+  </div>
+</section>

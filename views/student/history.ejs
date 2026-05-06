@@ -1,0 +1,39 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <% const passedAttempts = (attempts || []).filter((attempt) => attempt.passed).length; %>
+    <% const pendingAttempts = (attempts || []).filter((attempt) => attempt.status === 'pending-review').length; %>
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Student</span>
+        <h1>Score History</h1>
+        <p>Review your submitted attempts, pass trends, and exam-by-exam performance.</p>
+      </div>
+      <div class="toolbar">
+        <a href="/student/reviews" class="btn btn-outline-primary">Review Center</a>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <article class="summary-card">
+        <span>Total Attempts</span>
+        <strong><%= attempts.length %></strong>
+        <small>all quiz submissions recorded so far</small>
+      </article>
+      <article class="summary-card">
+        <span>Passed</span>
+        <strong><%= passedAttempts %></strong>
+        <small>attempts that cleared the pass mark</small>
+      </article>
+      <article class="summary-card">
+        <span>Pending Review</span>
+        <strong><%= pendingAttempts %></strong>
+        <small>manual reviews still waiting for teacher feedback</small>
+      </article>
+    </div>
+
+    <div class="table-card table-shell">
+      <%- include('history-table', { attempts }) %>
+    </div>
+  </div>
+</section>

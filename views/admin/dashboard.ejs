@@ -1,0 +1,264 @@
+<% layout('layouts/main') %>
+<%
+  const adminUserSegments = [
+    {
+      label: 'Students',
+      detail: 'Active learner accounts',
+      count: Number(stats.students || 0),
+      color: '#0e5c8b'
+    },
+    {
+      label: 'Teachers',
+      detail: 'Approved teaching access',
+      count: Number(stats.teachers || 0),
+      color: '#1c9b8f'
+    },
+    {
+      label: 'Admins',
+      detail: 'Administrative access',
+      count: Number(stats.admins || 0),
+      color: '#f59e0b'
+    }
+  ];
+  const totalAdminUsers = adminUserSegments.reduce((sum, segment) => sum + segment.count, 0);
+  let adminChartFill = 'conic-gradient(rgba(67, 108, 140, 0.18) 0deg 360deg)';
+
+  if (totalAdminUsers > 0) {
+    let currentAngle = 0;
+    adminChartFill = `conic-gradient(${adminUserSegments
+      .filter((segment) => segment.count > 0)
+      .map((segment) => {
+        const startAngle = currentAngle;
+        currentAngle += (segment.count / totalAdminUsers) * 360;
+        return `${segment.color} ${startAngle}deg ${currentAngle}deg`;
+      })
+      .join(', ')})`;
+  }
+%>
+
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <section class="dashboard-hero animate-fade-in">
+      <div class="dashboard-hero__grid">
+        <div class="dashboard-hero__content">
+          <span class="eyebrow">Administrator Workspace</span>
+          <h1>Welcome back, <%= currentUser.name %>.</h1>
+          <p>Manage user access, approve teacher requests, and keep the platform organized from one place.</p>
+        </div>
+
+        <div class="dashboard-hero__aside hero-mini-grid">
+          <div class="hero-mini-card">
+            <span>Students</span>
+            <strong><%= stats.students %></strong>
+            <small>active learner accounts</small>
+          </div>
+          <div class="hero-mini-card">
+            <span>Teachers</span>
+            <strong><%= stats.teachers %></strong>
+            <small>approved teaching accounts</small>
+          </div>
+          <div class="hero-mini-card">
+            <span>Pending requests</span>
+            <strong><%= stats.pendingTeachers %></strong>
+            <small>teacher approvals waiting</small>
+          </div>
+          <div class="hero-mini-card">
+            <span>Admins</span>
+            <strong><%= stats.admins %></strong>
+            <small>users with admin access</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="dashboard-overview">
+      <article class="chart-card">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">User Overview</span>
+            <h2>Account distribution</h2>
+            <p>A clear breakdown of the active user roles on the platform.</p>
+          </div>
+        </div>
+
+        <div class="chart-card__body">
+          <div class="donut-chart" style="--chart-fill: <%= adminChartFill %>;">
+            <div class="donut-chart__center">
+              <strong class="donut-chart__value"><%= totalAdminUsers %></strong>
+              <span class="donut-chart__label">Active users</span>
+            </div>
+          </div>
+
+          <div class="chart-legend">
+            <% adminUserSegments.forEach((segment) => { %>
+              <div class="legend-item">
+                <span class="legend-dot" style="background: <%= segment.color %>;"></span>
+                <div class="legend-copy">
+                  <strong><%= segment.label %></strong>
+                  <span><%= segment.detail %></span>
+                </div>
+                <span class="legend-value"><%= segment.count %></span>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      </article>
+
+      <div class="dashboard-side-stack">
+        <div class="compact-stat-grid">
+          <article class="compact-stat">
+            <span>Pending Approvals</span>
+            <strong><%= stats.pendingTeachers %></strong>
+            <small>Teacher requests to review</small>
+          </article>
+          <article class="compact-stat">
+            <span>Students</span>
+            <strong><%= stats.students %></strong>
+            <small>Active learner accounts</small>
+          </article>
+          <article class="compact-stat">
+            <span>Blocked Users</span>
+            <strong><%= stats.blockedUsers %></strong>
+            <small>Students or teachers blocked by admin</small>
+          </article>
+        </div>
+
+        <div class="support-card">
+          <span class="eyebrow">Admin Focus</span>
+          <h3>Keep access clean and clear</h3>
+          <p>
+            <% if (stats.pendingTeachers > 0) { %>
+              There <%= stats.pendingTeachers === 1 ? 'is' : 'are' %> <strong><%= stats.pendingTeachers %></strong> teacher request<%= stats.pendingTeachers === 1 ? '' : 's' %> waiting for approval.
+            <% } else if (stats.blockedUsers > 0) { %>
+              There <%= stats.blockedUsers === 1 ? 'is' : 'are' %> <strong><%= stats.blockedUsers %></strong> blocked account<%= stats.blockedUsers === 1 ? '' : 's' %> in the system right now.
+            <% } else { %>
+              There are no pending approvals or blocked accounts right now.
+            <% } %>
+          </p>
+          <div class="support-list">
+            <a href="#pending-approvals"><i class="fas fa-user-check"></i><span>Review pending approvals</span></a>
+            <a href="#access-forms"><i class="fas fa-user-plus"></i><span>Manage access forms</span></a>
+            <a href="#user-lists"><i class="fas fa-user-lock"></i><span>Block or unblock users</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="access-forms" class="grid gap-4 lg:grid-cols-2">
+      <div class="form-panel">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Teacher Access</span>
+            <h2>Grant teacher privileges</h2>
+            <p>Turn an existing user into a teacher by email address.</p>
+          </div>
+        </div>
+
+        <form action="/admin/teachers/grant" method="POST" class="grid gap-4 sm:grid-cols-[1fr_auto] items-end">
+          <label class="block">
+            <span class="text-sm font-medium text-slate-700">Teacher email</span>
+            <input class="input-field mt-2" type="email" name="email" placeholder="user@example.com" required>
+          </label>
+          <button class="btn btn-primary w-full sm:w-auto" type="submit">Grant access</button>
+        </form>
+      </div>
+
+      <div class="form-panel">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Administrator Setup</span>
+            <h2>Create a new admin</h2>
+            <p>Add another administrator with a name, email, and password.</p>
+          </div>
+        </div>
+
+        <form action="/admin/admins" method="POST" class="grid gap-4">
+          <label class="block">
+            <span class="text-sm font-medium text-slate-700">Full name</span>
+            <input class="input-field mt-2" name="name" placeholder="Jane Doe" required>
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-slate-700">Email address</span>
+            <input class="input-field mt-2" type="email" name="email" placeholder="admin@example.com" required>
+          </label>
+          <label class="block">
+            <span class="text-sm font-medium text-slate-700">Password</span>
+            <input class="input-field mt-2" type="password" name="password" placeholder="Minimum 6 characters" minlength="6" required>
+          </label>
+          <button class="btn btn-secondary w-full" type="submit">Create admin</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="pending-approvals" class="table-card table-shell">
+      <div class="panel-header">
+        <div class="panel-header__copy">
+          <span class="eyebrow">Teacher Requests</span>
+          <h2>Pending approvals</h2>
+          <p>Approve or reject teacher requests from this list.</p>
+        </div>
+        <span class="status-pill pending"><i class="fas fa-clock"></i> <%= pendingTeachers.length %> waiting</span>
+      </div>
+
+      <% if (pendingTeachers.length === 0) { %>
+        <div class="empty-state">No teacher requests are waiting.</div>
+      <% } else { %>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Requested</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% pendingTeachers.forEach((teacher) => { %>
+                <tr>
+                  <td><%= teacher.name %></td>
+                  <td><%= teacher.email %></td>
+                  <td><%= teacher.createdAt.toLocaleDateString() %></td>
+                  <td>
+                    <div class="action-stack">
+                      <form action="/admin/teachers/<%= teacher._id %>/approve?_method=PATCH" method="POST">
+                        <button class="btn btn-primary btn-sm" type="submit">Approve</button>
+                      </form>
+                      <form action="/admin/teachers/<%= teacher._id %>/reject?_method=PATCH" method="POST">
+                        <button class="btn btn-secondary btn-sm" type="submit">Reject</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+
+    <section id="user-lists" class="grid gap-4 lg:grid-cols-2">
+      <div class="table-card table-shell">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Users</span>
+            <h2>Students</h2>
+            <p>All student accounts, including any blocked accounts.</p>
+          </div>
+        </div>
+        <%- include('user-table', { users: students, emptyText: 'No students yet.' }) %>
+      </div>
+
+      <div class="table-card table-shell">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Users</span>
+            <h2>Teachers</h2>
+            <p>Teacher accounts outside the pending approval queue.</p>
+          </div>
+        </div>
+        <%- include('user-table', { users: teachers, emptyText: 'No teachers yet.' }) %>
+      </div>
+    </section>
+  </div>
+</section>

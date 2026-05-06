@@ -1,0 +1,92 @@
+<% layout('layouts/main') %>
+<section class="container-fluid py-4">
+  <div class="page-heading mb-4">
+    <div>
+      <span class="eyebrow">Code Review</span>
+      <h1><%= submission.problem.title %></h1>
+    </div>
+    <a href="/submissions/problem/<%= submission.problem._id %>" class="btn btn-outline-secondary">Back to Submissions</a>
+  </div>
+
+  <div class="row g-3">
+    <!-- Student Info and Submitted Code -->
+    <div class="col-lg-6">
+      <!-- Student Details -->
+      <div class="form-panel mb-3">
+        <h3 class="h5 mb-3">Student Information</h3>
+        <p class="mb-1"><strong>Name:</strong> <%= submission.student.name %></p>
+        <p class="mb-1"><strong>Email:</strong> <%= submission.student.email %></p>
+        <p class="mb-1"><strong>Submitted:</strong> <%= new Date(submission.submittedAt).toLocaleString() %></p>
+        <p class="mb-0"><strong>Language:</strong> <span class="badge text-bg-info"><%= submission.language.toUpperCase() %></span></p>
+      </div>
+
+      <!-- Submitted Code -->
+      <div class="form-panel">
+        <h3 class="h5 mb-3">Submitted Code</h3>
+        <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto; font-size: 12px;"><code><%= submission.code %></code></pre>
+      </div>
+    </div>
+
+    <!-- Review Form -->
+    <div class="col-lg-6">
+      <form method="POST" action="/submissions/<%= submission._id %>/review?_method=PATCH">
+        <!-- Marks Input -->
+        <div class="form-panel mb-3">
+          <h3 class="h5 mb-3">Evaluation</h3>
+          <div class="mb-3">
+            <label for="marks" class="form-label"><strong>Marks Awarded</strong></label>
+            <input type="number" id="marks" name="marksAwarded" class="form-control" min="0" max="100" 
+                   value="<%= submission.marksAwarded || 0 %>" required>
+            <small class="text-muted">Enter marks out of 100</small>
+          </div>
+
+          <!-- Teacher Comment -->
+          <div class="mb-3">
+            <label for="comment" class="form-label"><strong>Teacher Comment/Feedback</strong></label>
+            <textarea id="comment" name="teacherComment" class="form-control" rows="5" placeholder="Provide feedback to the student about their code..."><%= submission.teacherComment || '' %></textarea>
+          </div>
+        </div>
+
+        <!-- Corrected Code -->
+        <div class="form-panel mb-3">
+          <h3 class="h5 mb-3">Corrected Code (Optional)</h3>
+          <label for="corrected" class="form-label">If the student's code needs correction, provide the corrected version here:</label>
+          <textarea id="corrected" name="correctedCode" class="form-control font-monospace" rows="8" placeholder="Provide corrected code if needed..." style="font-family: 'Courier New', monospace; font-size: 12px;"><%= submission.correctedCode || '' %></textarea>
+          <small class="text-muted d-block mt-2">This will be shown to the student along with your feedback</small>
+        </div>
+
+        <!-- Submission Status -->
+        <div class="form-panel mb-3">
+          <p class="mb-2"><strong>Status:</strong> 
+            <% if (submission.status === 'reviewed') { %>
+              <span class="badge text-bg-success">Already Reviewed</span>
+              <small class="text-muted d-block mt-2">Reviewed by: <%= submission.reviewedBy?.name || 'Staff' %></small>
+              <small class="text-muted d-block">Date: <%= new Date(submission.reviewedAt).toLocaleString() %></small>
+            <% } else { %>
+              <span class="badge text-bg-warning">Pending Review</span>
+            <% } %>
+          </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-grid gap-2">
+          <button type="submit" class="btn btn-success btn-lg">
+            <i class="fa-solid fa-check me-2"></i>Submit Review & Marks
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Corrected Code (if already reviewed) -->
+  <% if (submission.status === 'reviewed' && submission.correctedCode) { %>
+    <div class="row g-3 mt-3">
+      <div class="col-12">
+        <div class="form-panel">
+          <h3 class="h5 mb-3">Corrected Code (Previously Provided)</h3>
+          <pre class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto; font-size: 12px;"><code><%= submission.correctedCode %></code></pre>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</section>

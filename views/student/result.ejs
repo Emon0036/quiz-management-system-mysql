@@ -1,0 +1,87 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <div class="result-hero">
+      <span class="eyebrow">Result</span>
+      <h1><%= attempt.quiz.title %></h1>
+      <div class="score-circle"><%= attempt.percentage %>%</div>
+      <p class="lead"><%= attempt.status === 'pending-review' ? 'Pending manual review' : attempt.passed ? 'Passed' : 'Needs improvement' %></p>
+      <p><%= attempt.score %> out of <%= attempt.totalMarks %> marks</p>
+    </div>
+
+    <div class="form-panel">
+      <div class="panel-header">
+        <div class="panel-header__copy">
+          <span class="eyebrow">Answer Review</span>
+          <h2>Question-by-question breakdown</h2>
+          <p>Review your submitted answers, explanations, and any teacher feedback that was added.</p>
+        </div>
+      </div>
+
+      <% attempt.answers.forEach((answer, index) => { %>
+        <% const isManualQuestion = ['short-answer', 'coding'].includes(answer.question.type); %>
+        <div class="review-item mb-4 p-4 rounded-3 shadow-sm">
+          <div class="d-flex align-items-start justify-content-between mb-3 gap-3">
+            <div>
+              <h3 class="h6 mb-1"><span class="badge bg-primary me-2"><%= index + 1 %></span><%= answer.question.questionText %></h3>
+              <p class="text-muted mb-0">Max marks: <strong><%= answer.question.marks %></strong></p>
+            </div>
+            <div class="text-end">
+              <span class="badge <%= answer.needsManualReview ? 'text-bg-warning' : answer.isCorrect ? 'text-bg-success' : 'text-bg-danger' %>">
+                <%= answer.needsManualReview ? 'Pending Review' : `${answer.marksObtained}/${answer.question.marks} marks` %>
+              </span>
+            </div>
+          </div>
+
+          <% if (answer.question.type === 'coding') { %>
+            <div class="mb-3">
+              <p class="mb-1 text-muted"><strong>Your code:</strong></p>
+              <pre class="code-block"><code><%= answer.answer || '(No code submitted)' %></code></pre>
+            </div>
+          <% } else { %>
+            <div class="mb-3">
+              <p class="mb-1 text-muted"><strong>Your answer:</strong></p>
+              <div class="p-3 bg-gray-50 rounded"><span class="fw-semibold <%= answer.isCorrect ? 'text-success' : answer.needsManualReview ? 'text-warning' : 'text-danger' %>"><%= answer.answer || '(Not answered)' %></span></div>
+            </div>
+          <% } %>
+
+          <% if (!answer.needsManualReview && isManualQuestion && answer.teacherCorrectAnswer && answer.teacherCorrectAnswer.trim()) { %>
+            <div class="alert alert-info mb-3">
+              <strong>Right answer:</strong>
+              <% if (answer.question.type === 'coding') { %>
+                <pre class="code-block mt-2 mb-0"><code><%= answer.teacherCorrectAnswer %></code></pre>
+              <% } else { %>
+                <p class="mb-0 mt-2"><%= answer.teacherCorrectAnswer %></p>
+              <% } %>
+            </div>
+          <% } %>
+
+          <% if (!answer.needsManualReview && !answer.isCorrect && !isManualQuestion) { %>
+            <div class="alert alert-info mb-3">
+              <strong>Correct answer:</strong> <%= answer.question.correctAnswer %>
+            </div>
+          <% } %>
+
+          <% if (!isManualQuestion && answer.question.explanation && answer.question.explanation.trim()) { %>
+            <div class="alert alert-light border border-secondary mb-3">
+              <strong>Explanation:</strong>
+              <p class="mb-0 mt-2"><%= answer.question.explanation %></p>
+            </div>
+          <% } %>
+
+          <% if (answer.reviewComment && answer.reviewComment.trim()) { %>
+            <div class="alert alert-secondary mb-0">
+              <strong>Teacher feedback:</strong>
+              <p class="mb-0 mt-2"><%= answer.reviewComment %></p>
+            </div>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+
+    <div class="toolbar">
+      <a href="/enrollments/browse" class="btn btn-primary">Browse More Exams</a>
+      <a href="/student/history" class="btn btn-outline-secondary">View History</a>
+    </div>
+  </div>
+</section>

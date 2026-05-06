@@ -1,0 +1,16 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Leaderboard</span>
+        <h1><%= quiz.title %></h1>
+        <p>See which students are performing best on this quiz and how many attempts they needed to get there.</p>
+      </div>
+    </div>
+
+    <div class="table-card table-shell">
+      <%- include('../student/leaderboard-table', { leaderboard }) %>
+    </div>
+  </div>
+</section>

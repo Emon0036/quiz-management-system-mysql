@@ -1,0 +1,90 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <div class="quiz-header">
+      <div>
+        <span class="eyebrow"><%= quiz.category %></span>
+        <h1><%= quiz.title %></h1>
+        <p><%= quiz.questions.length %> question<%= quiz.questions.length === 1 ? '' : 's' %> · <%= quiz.totalMarks %> marks total</p>
+      </div>
+      <% if (quiz.thumbnailUrl) { %>
+        <img class="quiz-header__thumbnail" src="<%= quiz.thumbnailUrl %>" alt="<%= quiz.title %> thumbnail">
+      <% } %>
+      <div class="timer" data-duration="<%= quiz.duration %>">
+        <i class="fa-regular fa-clock"></i>
+        <span id="timerText"><%= quiz.duration %>:00</span>
+      </div>
+    </div>
+
+    <div class="alert alert-warning small">
+      <i class="fa-solid fa-shield-halved me-2"></i>
+      Copying, cutting, pasting, leaving this tab, or switching focus will auto-submit your exam immediately.
+    </div>
+
+    <form id="quizForm" action="/student/quizzes/<%= quiz._id %>/submit" method="POST" class="form-panel">
+    <input type="hidden" name="timeSpent" id="timeSpent" value="0">
+    <input type="hidden" name="autoSubmitted" id="autoSubmitted" value="0">
+    <input type="hidden" name="autoSubmitReason" id="autoSubmitReason" value="">
+    
+    <% quiz.questions.forEach((question, index) => { %>
+      <article class="question-card">
+        <div class="question-card__top">
+          <div class="question-card__meta">
+            <span class="question-index"><%= index + 1 %></span>
+            <h2 class="question-card__title"><%= question.questionText %></h2>
+          </div>
+          <span class="status-pill approved"><%= question.marks %> mark<%= question.marks === 1 ? '' : 's' %></span>
+        </div>
+        
+        <% if (question.type === 'coding') { %>
+          <div class="coding-panel mb-3">
+            <% if (question.codeTemplate && question.codeTemplate.trim()) { %>
+              <div class="alert alert-info small mb-3">
+                <strong>Template:</strong><br>
+                <pre><%= question.codeTemplate %></pre>
+              </div>
+            <% } %>
+            
+            <% if (question.testCases && question.testCases.length > 0) { %>
+              <div class="alert alert-info small mb-3">
+                <strong>Sample Cases:</strong>
+                <% question.testCases.forEach((testCase, tcIndex) => { %>
+                  <div class="mt-2">
+                    <strong>Sample <%= tcIndex + 1 %>:</strong><br>
+                    <strong>Input:</strong>
+                    <pre class="code-block mt-1 mb-2"><code><%= testCase.input %></code></pre>
+                    <strong>Output:</strong>
+                    <pre class="code-block mt-1 mb-0"><code><%= testCase.expectedOutput %></code></pre>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+            
+            <label class="form-label">Language: <strong><%= question.language || 'Coding' %></strong></label>
+            <textarea 
+              class="form-control code-editor" 
+              name="code[<%= question._id %>]" 
+              data-language="<%= question.language || '' %>"
+              rows="10" 
+              placeholder="Write your code here..."
+              required><%= question.codeTemplate || '' %></textarea>
+          </div>
+        <% } else if (question.type === 'short-answer') { %>
+          <textarea class="form-control" name="answers[<%= question._id %>]" rows="3" placeholder="Write your answer" required></textarea>
+        <% } else { %>
+          <% question.options.forEach((option) => { %>
+            <label class="answer-option">
+              <input type="radio" name="answers[<%= question._id %>]" value="<%= option %>" required>
+              <span><%= option %></span>
+            </label>
+          <% }) %>
+        <% } %>
+      </article>
+    <% }) %>
+    
+    <button class="btn btn-primary btn-lg" type="submit">Submit <%= quiz.examType === 'coding-test' ? 'Exam' : 'Quiz' %></button>
+    </form>
+  </div>
+</section>
+
+<script src="/js/quizTimer.js"></script>
