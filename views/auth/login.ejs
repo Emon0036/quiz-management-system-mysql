@@ -15,42 +15,28 @@
         </a>
 
         <div class="auth-showcase__intro">
-          <span class="auth-kicker">Student and teacher access</span>
-          <h1>Welcome back</h1>
-          <p>Sign in to continue quizzes, review results, and manage exam work from one place.</p>
+          <span class="auth-kicker">QuizMaster access</span>
+          <h1>Ready to continue?</h1>
+          <p>Return to your quizzes, results, and review work.</p>
         </div>
 
-        <div class="auth-feature-list">
-          <article class="auth-feature">
-            <span class="auth-feature__icon"><i class="fas fa-file-circle-check"></i></span>
-            <div>
-              <h3>Quiz Attempts</h3>
-              <p>Take published quizzes and keep track of submitted work.</p>
-            </div>
-          </article>
-
-          <article class="auth-feature">
-            <span class="auth-feature__icon"><i class="fas fa-clipboard-check"></i></span>
-            <div>
-              <h3>Teacher Review</h3>
-              <p>Check feedback and review-ready submissions without extra steps.</p>
-            </div>
-          </article>
-
-          <article class="auth-feature">
-            <span class="auth-feature__icon"><i class="fas fa-chart-line"></i></span>
-            <div>
-              <h3>Progress and Rankings</h3>
-              <p>Open your history, score summaries, and leaderboard position.</p>
-            </div>
-          </article>
+        <div class="auth-preview-card" aria-hidden="true">
+          <div class="auth-preview-card__header">
+            <span class="auth-preview-card__icon"><i class="fas fa-layer-group"></i></span>
+            <strong>Dashboard</strong>
+          </div>
+          <div class="auth-preview-list">
+            <span><i class="fas fa-clipboard-list"></i> Quizzes</span>
+            <span><i class="fas fa-chart-line"></i> Scores</span>
+            <span><i class="fas fa-clipboard-check"></i> Reviews</span>
+          </div>
         </div>
       </div>
 
       <div class="auth-showcase__footer">
-        <div class="auth-showcase__note">
-          <strong>Built around the features already in your project.</strong>
-          <p>Students can take exams and track results. Teachers can create quizzes and review submissions.</p>
+        <div class="auth-mini-strip">
+          <span><i class="fas fa-shield-halved"></i> Secure access</span>
+          <span><i class="fas fa-user-check"></i> Role based</span>
         </div>
       </div>
     </aside>
@@ -68,8 +54,8 @@
         </a>
 
         <div class="auth-form-header">
-          <h2>Sign in to your account</h2>
-          <p>Enter your credentials to access your dashboard.</p>
+          <h2>Sign in</h2>
+          <p>Use your email and password.</p>
         </div>
 
         <form action="/auth/login" method="POST" class="auth-form-stack" x-data="{ showPassword: false }">
@@ -128,7 +114,7 @@
 
           <button type="submit" class="btn btn-primary auth-submit">
             <i class="fas fa-right-to-bracket"></i>
-            <span>Sign In</span>
+            <span>Sign in</span>
           </button>
         </form>
 
@@ -138,12 +124,12 @@
         </p>
 
         <% if (process.env.NODE_ENV === 'development') { %>
-          <div class="auth-helper-card">
-            <h3>Demo Credentials</h3>
+          <details class="auth-dev-credentials">
+            <summary>Demo credentials</summary>
             <p><strong>Admin:</strong> admin@example.com / admin123</p>
             <p><strong>Teacher:</strong> teacher@example.com / teacher123</p>
             <p><strong>Student:</strong> student@example.com / student123</p>
-          </div>
+          </details>
         <% } %>
       </div>
     </section>

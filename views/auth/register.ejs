@@ -15,42 +15,31 @@
         </a>
 
         <div class="auth-showcase__intro">
-          <span class="auth-kicker">Create a student account</span>
-          <h1>Join the platform</h1>
-          <p>Register to enroll in exams, check scores, and follow your review history from one clear workspace.</p>
+          <span class="auth-kicker">Student signup</span>
+          <h1>Create your space.</h1>
+          <p>Set up a student account and start taking quizzes.</p>
         </div>
 
-        <div class="auth-feature-list">
-          <article class="auth-feature">
-            <span class="auth-feature__icon"><i class="fas fa-book-open"></i></span>
-            <div>
-              <h3>Browse Published Exams</h3>
-              <p>Open available quizzes directly from your dashboard.</p>
-            </div>
-          </article>
-
-          <article class="auth-feature">
-            <span class="auth-feature__icon"><i class="fas fa-chart-column"></i></span>
-            <div>
-              <h3>Results and Progress</h3>
-              <p>Track your scores, attempts, and overall performance over time.</p>
-            </div>
-          </article>
-
-          <article class="auth-feature">
-            <span class="auth-feature__icon"><i class="fas fa-trophy"></i></span>
-            <div>
-              <h3>Leaderboard Access</h3>
-              <p>Compare your performance on quiz and global rankings.</p>
-            </div>
-          </article>
+        <div class="auth-step-list" aria-hidden="true">
+          <div class="auth-step">
+            <span>1</span>
+            <strong>Profile</strong>
+          </div>
+          <div class="auth-step">
+            <span>2</span>
+            <strong>Email</strong>
+          </div>
+          <div class="auth-step">
+            <span>3</span>
+            <strong>Password</strong>
+          </div>
         </div>
       </div>
 
       <div class="auth-showcase__footer">
-        <div class="auth-showcase__note">
-          <strong>Role-based access is already built in.</strong>
-          <p>Students can register directly, while teacher access stays under admin approval.</p>
+        <div class="auth-mini-strip">
+          <span><i class="fas fa-user-graduate"></i> Student account</span>
+          <span><i class="fas fa-user-shield"></i> Teacher by admin</span>
         </div>
       </div>
     </aside>
@@ -68,8 +57,8 @@
         </a>
 
         <div class="auth-form-header">
-          <h2>Create your account</h2>
-          <p>Join as a student and start using the platform.</p>
+          <h2>Create account</h2>
+          <p>Student signup takes a minute.</p>
         </div>
 
         <form action="/auth/register" method="POST" class="auth-form-stack" x-data="{ showPassword: false, showConfirmPassword: false }">
@@ -120,7 +109,7 @@
                 <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
               </button>
             </div>
-            <small class="auth-field__hint">Must be at least 6 characters long.</small>
+            <small class="auth-field__hint">6+ characters.</small>
           </label>
 
           <label class="auth-field">
@@ -173,10 +162,6 @@
           <a href="/auth/login" class="auth-subtle-link">Sign in</a>
         </p>
 
-        <div class="auth-helper-card">
-          <h3>Teacher Registration</h3>
-          <p>Teachers must be approved by administrators. Contact your admin or sign up as a student first.</p>
-        </div>
       </div>
     </section>
   </div>
