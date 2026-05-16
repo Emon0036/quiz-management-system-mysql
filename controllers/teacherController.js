@@ -25,6 +25,13 @@ function cleanText(value) {
   return String(value || '').trim();
 }
 
+function getDocumentId(value) {
+  if (!value) return '';
+  if (value._id) return String(value._id);
+  if (value.id) return String(value.id);
+  return String(value);
+}
+
 function buildQuizPayload(body) {
   const duration = Number(body.duration);
   const passingMarks = Number(body.passingMarks);
@@ -113,12 +120,17 @@ function buildQuestionPayload(quiz, body) {
     payload.correctAnswer = correctAnswer;
     payload.explanation = cleanText(body.explanation);
   } else if (type === 'short-answer') {
+    const correctAnswer = cleanText(body.correctAnswer);
+    if (!correctAnswer) errors.push('Short answer questions require a correct answer.');
     payload.options = [];
-    payload.correctAnswer = '';
+    payload.correctAnswer = correctAnswer;
   } else if (type === 'coding') {
+    const correctAnswer = cleanText(body.correctAnswer);
     const testCases = parseCodingTestCases(body);
     payload.language = cleanText(body.language);
     if (!payload.language) errors.push('Programming language is required for coding questions.');
+    if (!correctAnswer) errors.push('Coding questions require a correct answer or reference solution.');
+    payload.correctAnswer = correctAnswer;
     payload.codeTemplate = cleanText(body.codeTemplate);
     payload.testCases = testCases;
   }
@@ -396,13 +408,14 @@ exports.updateReview = async (req, res) => {
 
     const submittedMarks = Number(req.body.marks?.[index]);
     const teacherCorrectAnswer = cleanText(req.body.teacherCorrectAnswers?.[index]);
+    const savedCorrectAnswer = cleanText(answer.question.correctAnswer);
     const reviewComment = cleanText(req.body.comments?.[index]);
     const isManualQuestion = ['short-answer', 'coding'].includes(answer.question.type);
 
     if (!Number.isFinite(submittedMarks)) {
       reviewErrors.push(`Assign marks for question ${index + 1}.`);
     }
-    if (isManualQuestion && !teacherCorrectAnswer) {
+    if (isManualQuestion && !teacherCorrectAnswer && !savedCorrectAnswer) {
       reviewErrors.push(`Add the right answer for question ${index + 1}.`);
     }
     if (!reviewComment) {
@@ -427,11 +440,14 @@ exports.updateReview = async (req, res) => {
     }
 
     if (isManualQuestion) {
-      answer.teacherCorrectAnswer = cleanText(req.body.teacherCorrectAnswers?.[index]);
+      answer.teacherCorrectAnswer = cleanText(req.body.teacherCorrectAnswers?.[index]) || cleanText(answer.question.correctAnswer);
     }
     answer.reviewComment = cleanText(req.body.comments?.[index]);
   });
 
+  const quizId = getDocumentId(attempt.quiz);
+  const studentId = getDocumentId(attempt.student);
+  const attemptId = getDocumentId(attempt);
   attempt.score = attempt.answers.reduce((sum, answer) => sum + answer.marksObtained, 0);
   attempt.percentage = attempt.totalMarks ? Math.round((attempt.score / attempt.totalMarks) * 100) : 0;
   attempt.passed = attempt.percentage >= attempt.quiz.passingMarks;
@@ -439,11 +455,11 @@ exports.updateReview = async (req, res) => {
   await attempt.save();
 
   await Result.findOneAndUpdate(
-    { attempt: attempt._id },
+    { attempt: attemptId },
     {
-      student: attempt.student,
-      quiz: attempt.quiz._id,
-      attempt: attempt._id,
+      student: studentId,
+      quiz: quizId,
+      attempt: attemptId,
       marksObtained: attempt.score,
       totalMarks: attempt.totalMarks,
       percentage: attempt.percentage,
@@ -454,15 +470,15 @@ exports.updateReview = async (req, res) => {
   );
 
   const leaderboard = await Leaderboard.findOneAndUpdate(
-    { quiz: attempt.quiz._id },
-    { $setOnInsert: { quiz: attempt.quiz._id } },
+    { quiz: quizId },
+    { $setOnInsert: { quiz: quizId } },
     { upsert: true, returnDocument: 'after' }
   );
-  await leaderboard.recordAttempt(attempt.student, attempt.score, attempt.percentage);
-  await finalizeQuizAttempt(attempt._id);
+  await leaderboard.recordAttempt(studentId, attempt.score, attempt.percentage);
+  await finalizeQuizAttempt(attemptId);
 
   req.flash('success', 'Manual review saved.');
-  return res.redirect(`/teacher/quizzes/${attempt.quiz._id}/attempts`);
+  return res.redirect(`/teacher/quizzes/${quizId}/attempts`);
 };
 
 exports.analytics = async (req, res) => {

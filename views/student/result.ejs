@@ -20,6 +20,7 @@
 
       <% attempt.answers.forEach((answer, index) => { %>
         <% const isManualQuestion = ['short-answer', 'coding'].includes(answer.question.type); %>
+        <% const referenceAnswer = answer.teacherCorrectAnswer || answer.question.correctAnswer || ''; %>
         <div class="review-item mb-4 p-4 rounded-3 shadow-sm">
           <div class="d-flex align-items-start justify-content-between mb-3 gap-3">
             <div>
@@ -45,13 +46,13 @@
             </div>
           <% } %>
 
-          <% if (!answer.needsManualReview && isManualQuestion && answer.teacherCorrectAnswer && answer.teacherCorrectAnswer.trim()) { %>
+          <% if (isManualQuestion && referenceAnswer && referenceAnswer.trim()) { %>
             <div class="alert alert-info mb-3">
               <strong>Right answer:</strong>
               <% if (answer.question.type === 'coding') { %>
-                <pre class="code-block mt-2 mb-0"><code><%= answer.teacherCorrectAnswer %></code></pre>
+                <pre class="code-block mt-2 mb-0"><code><%= referenceAnswer %></code></pre>
               <% } else { %>
-                <p class="mb-0 mt-2"><%= answer.teacherCorrectAnswer %></p>
+                <p class="mb-0 mt-2"><%= referenceAnswer %></p>
               <% } %>
             </div>
           <% } %>

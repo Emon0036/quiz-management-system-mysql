@@ -153,6 +153,8 @@
   const textAnswerField = form.querySelector('#correctAnswerField');
   const trueFalseAnswerField = form.querySelector('#trueFalseAnswerField');
   const correctAnswerHelp = form.querySelector('#correctAnswerHelp');
+  const manualCorrectAnswerGroup = form.querySelector('#manualCorrectAnswerGroup');
+  const manualCorrectAnswerField = form.querySelector('#manualCorrectAnswerField');
   const explanationGroup = form.querySelector('#explanationGroup');
   const explanationField = form.querySelector('#explanationField');
   const optionInputs = Array.from(form.querySelectorAll('#optionsBox input'));
@@ -191,13 +193,15 @@
 
     setElementVisible(optionsBox, isMultipleChoice);
     setElementVisible(codingFields, isCoding);
-    setElementVisible(correctAnswerGroup, !isManualReview);
+    setElementVisible(correctAnswerGroup, isMultipleChoice || isTrueFalse);
+    setElementVisible(manualCorrectAnswerGroup, isManualReview);
     setElementVisible(explanationGroup, !isManualReview);
     setElementVisible(textAnswerField, isMultipleChoice);
     setElementVisible(trueFalseAnswerField, isTrueFalse);
 
     setFieldEnabled(textAnswerField, isMultipleChoice);
     setFieldEnabled(trueFalseAnswerField, isTrueFalse);
+    setFieldEnabled(manualCorrectAnswerField, isManualReview);
     if (explanationField) explanationField.disabled = isManualReview;
     setCodingFieldsEnabled(isCoding);
 
@@ -213,6 +217,12 @@
 
     if (textAnswerField) {
       if (isMultipleChoice) textAnswerField.placeholder = 'Enter the exact correct option text';
+    }
+
+    if (manualCorrectAnswerField) {
+      manualCorrectAnswerField.placeholder = isCoding
+        ? 'Add the reference solution, expected approach, or correct output'
+        : 'Add the correct written answer';
     }
   }
 

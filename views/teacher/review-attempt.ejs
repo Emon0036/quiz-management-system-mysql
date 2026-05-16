@@ -12,6 +12,7 @@
     <form action="/teacher/attempts/<%= attempt._id %>/review?_method=PATCH" method="POST" class="form-panel">
       <% attempt.answers.forEach((answer, index) => { %>
         <% const isManualQuestion = ['short-answer', 'coding'].includes(answer.question.type); %>
+        <% const referenceAnswer = answer.teacherCorrectAnswer || answer.question.correctAnswer || ''; %>
         <div class="review-item bg-white rounded-3 p-4 mb-4 shadow-sm">
           <div class="d-flex justify-content-between align-items-start mb-3">
             <div>
@@ -45,7 +46,7 @@
           <% if (isManualQuestion) { %>
             <div class="mb-3">
               <label class="form-label">Right answer / reference answer</label>
-              <textarea class="form-control" name="teacherCorrectAnswers[<%= index %>]" rows="<%= answer.question.type === 'coding' ? 6 : 3 %>" placeholder="<%= answer.question.type === 'coding' ? 'Add the reference solution or expected approach' : 'Add the right answer for this written response' %>" <%= answer.needsManualReview ? 'required' : '' %>><%= answer.teacherCorrectAnswer || '' %></textarea>
+              <textarea class="form-control" name="teacherCorrectAnswers[<%= index %>]" rows="<%= answer.question.type === 'coding' ? 6 : 3 %>" placeholder="<%= answer.question.type === 'coding' ? 'Add the reference solution or expected approach' : 'Add the right answer for this written response' %>" <%= answer.needsManualReview ? 'required' : '' %>><%= referenceAnswer %></textarea>
             </div>
           <% } %>
 

@@ -117,6 +117,7 @@ exports.submitQuiz = async (req, res) => {
         needsManualReview: true,
         marksObtained: 0,
         isCorrect: false,
+        teacherCorrectAnswer: question.correctAnswer || '',
       };
     }
 
@@ -129,6 +130,7 @@ exports.submitQuiz = async (req, res) => {
         needsManualReview: true,
         marksObtained: 0,
         isCorrect: false,
+        teacherCorrectAnswer: question.correctAnswer || '',
       };
     }
 

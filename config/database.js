@@ -25,6 +25,12 @@ const sequelize = new Sequelize(
   }
 );
 
+function getSessionMaxAgeMs() {
+  const configuredDays = Number(process.env.SESSION_MAX_AGE_DAYS || 30);
+  const days = Number.isFinite(configuredDays) && configuredDays > 0 ? configuredDays : 30;
+  return days * 24 * 60 * 60 * 1000;
+}
+
 function escapeIdentifier(identifier) {
   return `\`${String(identifier).replace(/`/g, '``')}\``;
 }
@@ -61,6 +67,7 @@ function getSessionStoreOptions() {
     user: databaseConfig.username,
     password: databaseConfig.password,
     database: databaseConfig.database,
+    expiration: getSessionMaxAgeMs(),
     createDatabaseTable: true,
     schema: {
       tableName: 'sessions',

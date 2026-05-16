@@ -72,7 +72,7 @@ exports.login = async (req, res, next) => {
 
     req.login(user, (loginError) => {
       if (loginError) return next(loginError);
-      saveTabUser(req, user.id, tabId);
+      saveTabUser(req, user.id, tabId, user.role);
       req.flash('success', `Welcome back, ${req.user.name}.`);
       return res.redirect(`${dashboardPathFor(req.user)}?tab=${encodeURIComponent(tabId)}`);
     });

@@ -77,7 +77,7 @@
       <% if (quiz._id) { %>
         <div class="form-panel mb-4">
           <h2 class="h5">Add Question</h2>
-          <p class="text-muted small mb-3">Write the question, add objective answers only where required, then assign marks. Written and coding answers are reviewed after submission.</p>
+          <p class="text-muted small mb-3">Write the question, add the correct answer, then assign marks. Written and coding answers are reviewed after submission.</p>
           <% const lockedType = ['true-false', 'short-answer', 'coding-test'].includes(quiz.examType) ? quiz.examType : null; %>
           <% const startsTrueFalse = lockedType === 'true-false'; %>
           <% const startsCoding = lockedType === 'coding-test'; %>
@@ -144,6 +144,20 @@
               </div>
               <button type="button" class="btn btn-sm btn-outline-secondary" id="addQuizTestCase">+ Add Test Case</button>
             </div>
+
+            <div id="manualCorrectAnswerGroup" class="<%= startsManualReview ? '' : 'd-none' %>">
+              <label class="form-label fw-semibold mb-1" for="manualCorrectAnswerField">
+                <%= startsCoding ? 'Correct Answer / Reference Solution' : 'Correct Answer' %>
+              </label>
+              <textarea
+                class="form-control"
+                id="manualCorrectAnswerField"
+                name="correctAnswer"
+                rows="<%= startsCoding ? 6 : 3 %>"
+                placeholder="<%= startsCoding ? 'Add the reference solution, expected approach, or correct output' : 'Add the correct written answer' %>"
+                <%= startsManualReview ? 'required' : 'disabled' %>
+              ></textarea>
+            </div>
             
             <div id="explanationGroup" class="<%= startsManualReview ? 'd-none' : '' %>">
               <label class="form-label fw-semibold mb-1" for="explanationField">Explanation</label>
@@ -169,6 +183,11 @@
                   <%= question.marks %> marks
                   <% if (question.type === 'coding') { %>
                     | <%= question.language || 'Coding' %> | <%= question.testCases ? question.testCases.length : 0 %> test cases
+                    <% if (question.correctAnswer && question.correctAnswer.trim()) { %>
+                      | <span class="badge bg-info">Has reference answer</span>
+                    <% } %>
+                  <% } else if (question.type === 'short-answer') { %>
+                    | Answer: <%= question.correctAnswer || 'N/A' %>
                   <% } else if (question.type !== 'short-answer') { %>
                     | Answer: <%= question.correctAnswer || 'N/A' %>
                   <% } %>

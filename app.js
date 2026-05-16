@@ -26,6 +26,12 @@ const app = express();
 const MySQLStore = MySQLStoreFactory(session);
 let sessionStore = null;
 
+function getSessionMaxAgeMs() {
+  const configuredDays = Number(process.env.SESSION_MAX_AGE_DAYS || 30);
+  const days = Number.isFinite(configuredDays) && configuredDays > 0 ? configuredDays : 30;
+  return days * 24 * 60 * 60 * 1000;
+}
+
 function validateRuntimeConfig() {
   if (process.env.NODE_ENV !== 'production') return;
 
@@ -70,10 +76,11 @@ function configureApp() {
       secret: process.env.SESSION_SECRET || 'replace-this-secret',
       resave: false,
       saveUninitialized: false,
+      rolling: true,
       store: sessionStore,
       cookie: {
         httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 24 * 7,
+        maxAge: getSessionMaxAgeMs(),
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
       },
