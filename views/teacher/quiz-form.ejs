@@ -53,6 +53,14 @@
           <div class="form-text">Recommended size: 1280 x 720 px (16:9). JPG, PNG, or WebP up to 5MB.</div>
         </div>
 
+        <% if (!quiz._id) { %>
+          <div class="form-field">
+            <label class="form-label" for="createRosterSheet">Student sheet CSV</label>
+            <input id="createRosterSheet" class="form-control" type="file" name="rosterSheet" accept=".csv,.tsv,.txt">
+            <div class="form-text">Optional while creating. Export from Google Sheets as CSV with columns: Student ID, Exam Name, Date.</div>
+          </div>
+        <% } %>
+
         <div class="form-field">
           <label class="form-label" for="quizCategory">Category</label>
           <input id="quizCategory" class="form-control" name="category" placeholder="Category" value="<%= quiz.category || 'General Knowledge' %>" required>
@@ -72,6 +80,38 @@
 
         <button class="btn btn-primary" type="submit">Save Quiz</button>
       </form>
+
+      <% if (quiz._id) { %>
+        <% const rosterCount = (typeof rosterEntries !== 'undefined' && rosterEntries) ? rosterEntries.length : 0; %>
+        <section class="form-panel quiz-details-form mt-4">
+          <div class="panel-header">
+            <div class="panel-header__copy">
+              <span class="eyebrow">Student Sheet</span>
+              <h2>Roster Access</h2>
+              <p><%= rosterCount %> student ID<%= rosterCount === 1 ? '' : 's' %> connected to this exam.</p>
+            </div>
+            <span class="status-pill <%= rosterCount ? 'approved' : 'pending' %>"><%= rosterCount ? 'Active' : 'No sheet' %></span>
+          </div>
+
+          <form action="<%= actionWithTab(`/teacher/quizzes/${quiz._id}/roster/upload`) %>" method="POST" enctype="multipart/form-data" class="vstack gap-3">
+            <div class="form-field">
+              <label class="form-label" for="rosterSheet">Upload Google Sheet CSV</label>
+              <input id="rosterSheet" class="form-control" type="file" name="rosterSheet" accept=".csv,.tsv,.txt" required>
+              <div class="form-text">Required columns: Student ID, Exam Name, Date.</div>
+            </div>
+            <div class="toolbar">
+              <button class="btn btn-outline-primary" type="submit">
+                <i class="fa-solid fa-file-arrow-up"></i>
+                Upload Sheet
+              </button>
+              <a class="btn btn-outline-secondary <%= rosterCount ? '' : 'disabled' %>" href="<%= actionWithTab(`/teacher/quizzes/${quiz._id}/roster/download`) %>">
+                <i class="fa-solid fa-file-arrow-down"></i>
+                Download Sheet
+              </a>
+            </div>
+          </form>
+        </section>
+      <% } %>
     </div>
     <div class="col-lg-7">
       <% if (quiz._id) { %>

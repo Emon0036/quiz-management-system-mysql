@@ -1,0 +1,33 @@
+<% layout('layouts/main') %>
+<section class="page-shell">
+  <div class="page-container page-container--narrow page-stack">
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Student verification</span>
+        <h1><%= quiz.title %></h1>
+        <p>Enter the student ID your teacher included in the exam sheet before starting this attempt.</p>
+      </div>
+    </div>
+
+    <form class="form-panel" action="/student/quizzes/<%= quiz._id %>/verify-id" method="POST">
+      <div class="form-field">
+        <label class="form-label" for="studentId">Student ID</label>
+        <input
+          id="studentId"
+          class="form-control"
+          name="studentId"
+          placeholder="Example: CSE-2026-001"
+          autocomplete="off"
+          required
+        >
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" type="submit">
+          <i class="fa-solid fa-id-card"></i>
+          Verify and continue
+        </button>
+        <a class="btn btn-outline-secondary" href="/enrollments/my-quizzes">Back to My Exams</a>
+      </div>
+    </form>
+  </div>
+</section>

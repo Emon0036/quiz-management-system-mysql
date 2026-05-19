@@ -10,6 +10,7 @@
     "start": "node app.js",
     "dev": "nodemon app.js",
     "build-css": "tailwindcss -i ./public/css/style.css -o ./public/css/output.css --watch",
+    "seed:demo": "node scripts/seed-demo-teachers.js",
     "test": "node scripts/check-js.js"
   },
   "keywords": [

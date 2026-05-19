@@ -96,6 +96,8 @@
           <div class="action-grid quiz-browse-grid">
             <% group.quizzes.forEach((quiz) => { %>
               <% const isEnrolled = (enrolledQuizIds || []).includes(String(quiz._id)); %>
+              <% const enrollment = (enrollmentByQuizId || {})[String(quiz._id)] || null; %>
+              <% const needsReEnroll = enrollment && Number(enrollment.attempts || 0) >= 10; %>
               <article class="quiz-card">
                 <div class="quiz-card__thumbnail">
                   <% if (quiz.thumbnailUrl) { %>
@@ -122,7 +124,11 @@
                   <span><i class="fas fa-user-tie me-2"></i><%= quiz.createdBy?.name || 'Teacher' %></span>
                 </div>
                 <div class="quiz-card__actions">
-                  <% if (isEnrolled) { %>
+                  <% if (needsReEnroll) { %>
+                    <form action="/enrollments/<%= quiz._id %>/enroll" method="POST">
+                      <button class="btn btn-success btn-sm" type="submit">Re-enroll</button>
+                    </form>
+                  <% } else if (isEnrolled) { %>
                     <a class="btn btn-primary btn-sm" href="/student/quizzes/<%= quiz._id %>/take">Attempt now</a>
                   <% } else { %>
                     <form action="/enrollments/<%= quiz._id %>/enroll" method="POST">

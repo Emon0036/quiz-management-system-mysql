@@ -6,6 +6,8 @@ const Attempt = require('../models/Attempt');
 const Problem = require('../models/Problem');
 const Submission = require('../models/Submission');
 
+const MAX_ATTEMPTS_PER_ENROLLMENT = 10;
+
 function normalizeCategory(category) {
   const value = String(category || '').trim();
   return value || 'General';
@@ -78,6 +80,15 @@ exports.browseQuizzes = async (req, res) => {
     ).map((group) => ({ category: group.category, quizzes: group.items }));
 
     const enrolledQuizIds = enrollments.map((enrollment) => enrollment.quiz.toString());
+    const enrollmentByQuizId = Object.fromEntries(
+      enrollments.map((enrollment) => [
+        String(enrollment.quiz),
+        {
+          attempts: Number(enrollment.attempts || 0),
+          status: enrollment.status,
+        },
+      ])
+    );
 
     const categories = rawCategories
       .map((category) => normalizeCategory(category))
@@ -115,6 +126,7 @@ exports.browseQuizzes = async (req, res) => {
       selectedTeacherId,
       selectedTeacherName: selectedTeacher ? selectedTeacher.name : '',
       enrolledQuizIds,
+      enrollmentByQuizId,
       query: req.query,
     });
   } catch (error) {
@@ -144,6 +156,17 @@ exports.enrollQuiz = async (req, res) => {
     });
 
     if (existing) {
+      if (Number(existing.attempts || 0) >= MAX_ATTEMPTS_PER_ENROLLMENT) {
+        existing.attempts = 0;
+        existing.status = 'enrolled';
+        existing.bestScore = 0;
+        existing.bestAttemptId = undefined;
+        await existing.save();
+
+        req.flash('success', `Re-enrolled in "${quiz.title}". You have 10 fresh attempts.`);
+        return res.redirect('/enrollments/my-quizzes');
+      }
+
       req.flash('success', 'You are already enrolled in this exam.');
       return res.redirect('/enrollments/my-quizzes');
     }

@@ -4,8 +4,16 @@ const Attempt = require('../models/Attempt');
 const Result = require('../models/Result');
 const Leaderboard = require('../models/Leaderboard');
 const Enrollment = require('../models/Enrollment');
+const ExamRosterEntry = require('../models/ExamRosterEntry');
 const { finalizeQuizAttempt } = require('../utils/quizProgress');
 const { uploadQuizThumbnail, destroyQuizThumbnail } = require('../utils/quizThumbnailService');
+const {
+  formatRosterCsv,
+  normalizeExamName,
+  normalizeStudentId,
+  parseRosterSheet,
+  updateRosterAttemptFromReview,
+} = require('../utils/examRosterSheet');
 
 const EXAM_TYPES = ['quiz', 'true-false', 'short-answer', 'coding-test'];
 const DIFFICULTY_LEVELS = ['Easy', 'Medium', 'Hard'];
@@ -152,6 +160,60 @@ async function recalculateQuizMarks(quizId) {
   await Quiz.findByIdAndUpdate(quizId, { questions: questions.map((question) => question._id), totalMarks });
 }
 
+async function getRosterEntriesForQuiz(quizId) {
+  return ExamRosterEntry.find({ quiz: quizId }).sort('studentId');
+}
+
+function getUploadedFile(req, fieldName) {
+  return req.files?.[fieldName]?.[0] || null;
+}
+
+function getRosterRowsForQuiz(buffer, quizTitle) {
+  const rows = parseRosterSheet(buffer, quizTitle);
+  const quizName = normalizeExamName(quizTitle);
+  return rows.filter((row) => !row.examName || normalizeExamName(row.examName) === quizName);
+}
+
+async function importRosterRowsForQuiz({ quiz, teacherId, rows }) {
+  const existingEntries = await ExamRosterEntry.find({ quiz: quiz._id });
+  const existingByStudentId = new Map(existingEntries.map((entry) => [entry.studentId, entry]));
+  const uploadedStudentIds = new Set();
+  let importedCount = 0;
+
+  for (const row of rows) {
+    const studentId = normalizeStudentId(row.studentId);
+    uploadedStudentIds.add(studentId);
+    let entry = existingByStudentId.get(studentId);
+
+    if (!entry) {
+      entry = await ExamRosterEntry.create({
+        teacher: teacherId,
+        quiz: quiz._id,
+        studentId,
+        examName: row.examName || quiz.title,
+        examDate: row.examDate,
+        attempts: [],
+        sourceData: row.sourceData,
+      });
+    } else {
+      entry.teacher = teacherId;
+      entry.examName = row.examName || quiz.title;
+      entry.examDate = row.examDate;
+      entry.sourceData = row.sourceData;
+      await entry.save();
+    }
+
+    importedCount += 1;
+  }
+
+  const staleEntries = existingEntries.filter((entry) => !uploadedStudentIds.has(entry.studentId));
+  for (const entry of staleEntries) {
+    await ExamRosterEntry.deleteOne({ _id: entry._id });
+  }
+
+  return { importedCount, removedCount: staleEntries.length };
+}
+
 exports.dashboard = async (req, res) => {
   const quizzes = await Quiz.find({ createdBy: req.user._id }).sort('-createdAt');
   const quizIds = quizzes.map((quiz) => quiz._id);
@@ -222,10 +284,30 @@ exports.createQuiz = async (req, res) => {
     return res.redirect('/teacher/quizzes/new');
   }
 
-  let thumbnailPayload = {};
-  if (req.file) {
+  const rosterFile = getUploadedFile(req, 'rosterSheet');
+  let rosterRows = [];
+  let skippedRosterRows = 0;
+  if (rosterFile) {
     try {
-      thumbnailPayload = await uploadQuizThumbnail(req.file, 'new');
+      const allRows = parseRosterSheet(rosterFile.buffer, payload.title);
+      rosterRows = getRosterRowsForQuiz(rosterFile.buffer, payload.title);
+      skippedRosterRows = allRows.length - rosterRows.length;
+    } catch (error) {
+      req.flash('error', error.message || 'Unable to read the uploaded student sheet.');
+      return res.redirect('/teacher/quizzes/new');
+    }
+
+    if (!rosterRows.length) {
+      req.flash('error', `No student sheet rows matched this exam name: ${payload.title}`);
+      return res.redirect('/teacher/quizzes/new');
+    }
+  }
+
+  let thumbnailPayload = {};
+  const thumbnailFile = getUploadedFile(req, 'thumbnail');
+  if (thumbnailFile) {
+    try {
+      thumbnailPayload = await uploadQuizThumbnail(thumbnailFile, 'new');
     } catch (error) {
       req.flash('error', error.message || 'Thumbnail upload failed.');
       return res.redirect('/teacher/quizzes/new');
@@ -234,7 +316,17 @@ exports.createQuiz = async (req, res) => {
 
   const quiz = await Quiz.create({ ...payload, ...thumbnailPayload, createdBy: req.user._id, status: 'draft' });
   await Leaderboard.create({ quiz: quiz._id, entries: [] });
-  req.flash('success', 'Quiz created. Add questions next.');
+
+  if (rosterRows.length) {
+    const rosterResult = await importRosterRowsForQuiz({ quiz, teacherId: req.user._id, rows: rosterRows });
+    const skippedMessage = skippedRosterRows
+      ? ` ${skippedRosterRows} row${skippedRosterRows === 1 ? '' : 's'} skipped for other exams.`
+      : '';
+    req.flash('success', `Quiz created and ${rosterResult.importedCount} student sheet row${rosterResult.importedCount === 1 ? '' : 's'} imported.${skippedMessage} Add questions next.`);
+  } else {
+    req.flash('success', 'Quiz created. Add questions next.');
+  }
+
   return res.redirect(`/teacher/quizzes/${quiz._id}/edit`);
 };
 
@@ -244,7 +336,14 @@ exports.showEditQuiz = async (req, res) => {
     req.flash('error', 'Quiz not found.');
     return res.redirect('/teacher/quizzes');
   }
-  return res.render('teacher/quiz-form', { title: 'Edit Quiz', quiz, questions: quiz.questions, action: `/teacher/quizzes/${quiz._id}?_method=PUT` });
+  const rosterEntries = await getRosterEntriesForQuiz(quiz._id);
+  return res.render('teacher/quiz-form', {
+    title: 'Edit Quiz',
+    quiz,
+    questions: quiz.questions,
+    rosterEntries,
+    action: `/teacher/quizzes/${quiz._id}?_method=PUT`,
+  });
 };
 
 exports.updateQuiz = async (req, res) => {
@@ -267,10 +366,11 @@ exports.updateQuiz = async (req, res) => {
     return res.redirect(`/teacher/quizzes/${quiz._id}/edit`);
   }
 
-  if (req.file) {
+  const thumbnailFile = getUploadedFile(req, 'thumbnail');
+  if (thumbnailFile) {
     let thumbnailPayload = {};
     try {
-      thumbnailPayload = await uploadQuizThumbnail(req.file, quiz._id);
+      thumbnailPayload = await uploadQuizThumbnail(thumbnailFile, quiz._id);
     } catch (error) {
       req.flash('error', error.message || 'Thumbnail upload failed.');
       return res.redirect(`/teacher/quizzes/${quiz._id}/edit`);
@@ -298,10 +398,69 @@ exports.deleteQuiz = async (req, res) => {
     Attempt.deleteMany({ quiz: quiz._id }),
     Result.deleteMany({ quiz: quiz._id }),
     Leaderboard.deleteOne({ quiz: quiz._id }),
+    ExamRosterEntry.deleteMany({ quiz: quiz._id }),
     Quiz.deleteOne({ _id: quiz._id }),
   ]);
   req.flash('success', 'Quiz deleted.');
   return res.redirect('/teacher/quizzes');
+};
+
+exports.uploadRoster = async (req, res) => {
+  const quiz = await Quiz.findOne({ _id: req.params.quizId, createdBy: req.user._id });
+  if (!quiz) {
+    req.flash('error', 'Quiz not found.');
+    return res.redirect('/teacher/quizzes');
+  }
+
+  if (!req.file || !req.file.buffer) {
+    req.flash('error', 'Please upload a CSV file exported from Google Sheets.');
+    return res.redirect(`/teacher/quizzes/${quiz._id}/edit`);
+  }
+
+  let allRows = [];
+  let matchingRows = [];
+  try {
+    allRows = parseRosterSheet(req.file.buffer, quiz.title);
+    matchingRows = getRosterRowsForQuiz(req.file.buffer, quiz.title);
+  } catch (error) {
+    req.flash('error', error.message || 'Unable to read the uploaded sheet.');
+    return res.redirect(`/teacher/quizzes/${quiz._id}/edit`);
+  }
+
+  if (!matchingRows.length) {
+    req.flash('error', `No rows matched this exam name: ${quiz.title}`);
+    return res.redirect(`/teacher/quizzes/${quiz._id}/edit`);
+  }
+
+  const rosterResult = await importRosterRowsForQuiz({ quiz, teacherId: req.user._id, rows: matchingRows });
+  const skippedCount = allRows.length - matchingRows.length;
+  const staleMessage = rosterResult.removedCount
+    ? `, ${rosterResult.removedCount} old row${rosterResult.removedCount === 1 ? '' : 's'} removed`
+    : '';
+  const skippedMessage = skippedCount
+    ? `, ${skippedCount} row${skippedCount === 1 ? '' : 's'} skipped for other exams`
+    : '';
+  req.flash('success', `Student sheet imported: ${rosterResult.importedCount} row${rosterResult.importedCount === 1 ? '' : 's'} ready${staleMessage}${skippedMessage}.`);
+  return res.redirect(`/teacher/quizzes/${quiz._id}/edit`);
+};
+
+exports.downloadRoster = async (req, res) => {
+  const quiz = await Quiz.findOne({ _id: req.params.quizId, createdBy: req.user._id });
+  if (!quiz) {
+    req.flash('error', 'Quiz not found.');
+    return res.redirect('/teacher/quizzes');
+  }
+
+  const entries = await getRosterEntriesForQuiz(quiz._id);
+  const csv = formatRosterCsv(entries);
+  const filename = `${quiz.title || 'exam'}-student-sheet.csv`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename || 'student-sheet'}.csv"`);
+  return res.send(csv);
 };
 
 exports.togglePublish = async (req, res) => {
@@ -475,6 +634,7 @@ exports.updateReview = async (req, res) => {
     { upsert: true, returnDocument: 'after' }
   );
   await leaderboard.recordAttempt(studentId, attempt.score, attempt.percentage);
+  await updateRosterAttemptFromReview(attempt);
   await finalizeQuizAttempt(attemptId);
 
   req.flash('success', 'Manual review saved.');

@@ -16,15 +16,47 @@
       </div>
     </div>
 
-    <div class="alert alert-warning small">
-      <i class="fa-solid fa-shield-halved me-2"></i>
-      Copying, cutting, pasting, leaving this tab, or switching focus will auto-submit your exam immediately.
-    </div>
+    <section class="exam-security-note" aria-labelledby="examSecurityTitle" aria-live="polite">
+      <div class="exam-security-note__icon" aria-hidden="true">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <div class="exam-security-note__content">
+        <div class="exam-security-note__header">
+          <div>
+            <span class="exam-security-note__label">Exam security rules</span>
+            <h2 id="examSecurityTitle">Three safety chances before auto-submit</h2>
+          </div>
+          <div class="exam-security-note__status">
+            <span id="securityTrialsText">3 chances left</span>
+            <span id="securityRecoveryText" class="d-none">Return window: 1:00</span>
+          </div>
+        </div>
+        <p>
+          During the exam, copying, cutting, pasting, copy/paste shortcuts, developer tools attempts,
+          right-click actions, leaving this tab, or switching to another window are treated as security
+          incidents. The first 3 incidents are warnings so an accidental action does not immediately end
+          the exam. Any incident after those 3 warnings will auto-submit the exam.
+        </p>
+        <p class="mb-0">
+          If you leave the exam tab or window, a 1 minute return window starts immediately. Come back to
+          this exam within that minute to continue. If the 1 minute limit is crossed, the exam is
+          auto-submitted even if you still have warning chances left.
+        </p>
+        <p id="securityWarningText" class="exam-security-note__live d-none"></p>
+      </div>
+    </section>
 
     <form id="quizForm" action="/student/quizzes/<%= quiz._id %>/submit" method="POST" class="form-panel">
     <input type="hidden" name="timeSpent" id="timeSpent" value="0">
     <input type="hidden" name="autoSubmitted" id="autoSubmitted" value="0">
     <input type="hidden" name="autoSubmitReason" id="autoSubmitReason" value="">
+    <% if (typeof rosterAccess !== 'undefined' && rosterAccess) { %>
+      <input type="hidden" name="examRosterStudentId" value="<%= rosterAccess.studentId %>">
+      <div class="alert alert-info small">
+        <i class="fa-solid fa-id-card me-2"></i>
+        Verified student ID: <strong><%= rosterAccess.studentId %></strong>
+      </div>
+    <% } %>
     
     <% quiz.questions.forEach((question, index) => { %>
       <article class="question-card">
@@ -37,6 +69,20 @@
         </div>
         
         <% if (question.type === 'coding') { %>
+          <%
+            const codingLanguage = question.language || 'Any programming language';
+            const normalizedLanguage = String(codingLanguage).toLowerCase();
+            const fileExtension = normalizedLanguage.includes('javascript') ? 'js'
+              : normalizedLanguage.includes('python') ? 'py'
+              : normalizedLanguage.includes('java') ? 'java'
+              : normalizedLanguage.includes('c++') || normalizedLanguage.includes('cpp') ? 'cpp'
+              : normalizedLanguage === 'c' || normalizedLanguage.includes(' c ') ? 'c'
+              : normalizedLanguage.includes('php') ? 'php'
+              : normalizedLanguage.includes('ruby') ? 'rb'
+              : normalizedLanguage.includes('go') ? 'go'
+              : normalizedLanguage.includes('sql') ? 'sql'
+              : 'code';
+          %>
           <div class="coding-panel mb-3">
             <% if (question.codeTemplate && question.codeTemplate.trim()) { %>
               <div class="alert alert-info small mb-3">
@@ -59,15 +105,54 @@
                 <% }) %>
               </div>
             <% } %>
-            
-            <label class="form-label">Language: <strong><%= question.language || 'Coding' %></strong></label>
-            <textarea 
-              class="form-control code-editor" 
-              name="code[<%= question._id %>]" 
-              data-language="<%= question.language || '' %>"
-              rows="10" 
-              placeholder="Write your code here..."
-              required><%= question.codeTemplate || '' %></textarea>
+
+            <div class="code-ide" data-code-ide>
+              <div class="code-ide__titlebar">
+                <div class="code-ide__window-controls" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <div class="code-ide__tabs">
+                  <span class="code-ide__tab is-active">
+                    <i class="fa-solid fa-code"></i>
+                    solution.<%= fileExtension %>
+                  </span>
+                </div>
+                <div class="code-ide__meta">
+                  <span><i class="fa-solid fa-circle"></i> Ready</span>
+                </div>
+              </div>
+              <div class="code-ide__crumbs">
+                <span>Language</span>
+                <strong><%= codingLanguage %></strong>
+                <span class="code-ide__divider" aria-hidden="true"></span>
+                <span data-code-lines>1 line</span>
+              </div>
+              <div class="code-ide__editor">
+                <pre class="code-ide__gutter" data-code-gutter aria-hidden="true">1</pre>
+                <label class="visually-hidden" for="codeEditor-<%= question._id %>">Code answer for question <%= index + 1 %></label>
+                <textarea
+                  id="codeEditor-<%= question._id %>"
+                  class="form-control code-editor"
+                  name="code[<%= question._id %>]"
+                  data-language="<%= codingLanguage %>"
+                  data-code-editor
+                  rows="14"
+                  placeholder="// Write your code here..."
+                  spellcheck="false"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  autocorrect="off"
+                  wrap="off"
+                  required><%= question.codeTemplate || '' %></textarea>
+              </div>
+              <div class="code-ide__statusbar">
+                <span><i class="fa-solid fa-keyboard"></i> Insert</span>
+                <span data-code-cursor>Ln 1, Col 1</span>
+                <span><%= codingLanguage %></span>
+              </div>
+            </div>
           </div>
         <% } else if (question.type === 'short-answer') { %>
           <textarea class="form-control" name="answers[<%= question._id %>]" rows="3" placeholder="Write your answer" required></textarea>

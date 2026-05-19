@@ -5,7 +5,15 @@ const Result = require('../models/Result');
 const Leaderboard = require('../models/Leaderboard');
 const Enrollment = require('../models/Enrollment');
 const Progress = require('../models/Progress');
+const ExamRosterEntry = require('../models/ExamRosterEntry');
 const { finalizeQuizAttempt } = require('../utils/quizProgress');
+const {
+  findRosterEntryForQuiz,
+  normalizeStudentId,
+  recordRosterAttempt,
+} = require('../utils/examRosterSheet');
+
+const MAX_ATTEMPTS_PER_ENROLLMENT = 10;
 
 function getAutoSubmitMessage(reason) {
   const messages = {
@@ -15,15 +23,44 @@ function getAutoSubmitMessage(reason) {
     clipboard_cut_shortcut: 'you used a cut shortcut during the exam',
     clipboard_paste: 'you tried to paste during the exam',
     clipboard_paste_shortcut: 'you used a paste shortcut during the exam',
+    context_menu: 'you tried to use the right-click menu during the exam',
     dev_tools_attempted: 'developer tools were opened or attempted',
     focus_lost: 'you left the quiz tab/window',
     page_hide: 'the quiz page was hidden or closed',
+    security_recovery_timeout: 'you did not return to the exam within 1 minute',
     tab_hidden: 'you switched away from the quiz tab',
     time_up: 'time ran out',
     window_blur: 'you switched away from the quiz window',
   };
 
   return messages[reason] || 'the exam security rules were triggered';
+}
+
+function getStoredRosterAccess(req, quizId) {
+  return req.session?.examRosterAccess?.[String(quizId)] || null;
+}
+
+function saveRosterAccess(req, quizId, entry) {
+  if (!req.session) return;
+  req.session.examRosterAccess = req.session.examRosterAccess || {};
+  req.session.examRosterAccess[String(quizId)] = {
+    entryId: String(entry._id),
+    studentId: entry.studentId,
+    verifiedAt: Date.now(),
+  };
+}
+
+async function getVerifiedRosterEntry(req, quizId) {
+  const access = getStoredRosterAccess(req, quizId);
+  if (!access?.studentId) return null;
+
+  const entry = await findRosterEntryForQuiz(quizId, access.studentId);
+  if (!entry || String(entry._id) !== String(access.entryId)) return null;
+  return entry;
+}
+
+function hasReachedAttemptLimit(enrollment) {
+  return Number(enrollment?.attempts || 0) >= MAX_ATTEMPTS_PER_ENROLLMENT;
 }
 
 exports.dashboard = async (req, res) => {
@@ -74,12 +111,65 @@ exports.takeQuiz = async (req, res) => {
     return res.redirect('/enrollments/browse');
   }
 
+  if (hasReachedAttemptLimit(enrollment)) {
+    req.flash('error', 'You have used all 10 attempts for this enrollment. Please enroll again to continue.');
+    return res.redirect('/enrollments/my-quizzes');
+  }
+
   const quiz = await Quiz.findOne({ _id: req.params.quizId, status: 'published' }).populate('questions');
   if (!quiz) {
     req.flash('error', 'Quiz is not available.');
     return res.redirect('/enrollments/browse');
   }
-  return res.render('student/take-quiz', { title: quiz.title, quiz });
+
+  const rosterCount = await ExamRosterEntry.countDocuments({ quiz: quiz._id });
+  let rosterAccess = null;
+  if (rosterCount > 0) {
+    const rosterEntry = await getVerifiedRosterEntry(req, quiz._id);
+    if (!rosterEntry) {
+      return res.render('student/verify-exam-id', {
+        title: 'Verify Student ID',
+        quiz,
+      });
+    }
+
+    rosterAccess = {
+      studentId: rosterEntry.studentId,
+      entryId: rosterEntry._id,
+    };
+  }
+
+  return res.render('student/take-quiz', { title: quiz.title, quiz, rosterAccess });
+};
+
+exports.verifyExamId = async (req, res) => {
+  const enrollment = await Enrollment.findOne({ student: req.user._id, quiz: req.params.quizId });
+  if (!enrollment) {
+    req.flash('error', 'You must enroll first before attempting this exam.');
+    return res.redirect('/enrollments/browse');
+  }
+
+  if (hasReachedAttemptLimit(enrollment)) {
+    req.flash('error', 'You have used all 10 attempts for this enrollment. Please enroll again to continue.');
+    return res.redirect('/enrollments/my-quizzes');
+  }
+
+  const quiz = await Quiz.findOne({ _id: req.params.quizId, status: 'published' });
+  if (!quiz) {
+    req.flash('error', 'Quiz is not available.');
+    return res.redirect('/enrollments/browse');
+  }
+
+  const studentId = normalizeStudentId(req.body.studentId);
+  const rosterEntry = await findRosterEntryForQuiz(quiz._id, studentId);
+  if (!rosterEntry) {
+    req.flash('error', 'You are not under this teacher or check your ID.');
+    return res.redirect(`/student/quizzes/${quiz._id}/take`);
+  }
+
+  saveRosterAccess(req, quiz._id, rosterEntry);
+  req.flash('success', 'Student ID verified. You can start the exam now.');
+  return res.redirect(`/student/quizzes/${quiz._id}/take`);
 };
 
 exports.submitQuiz = async (req, res) => {
@@ -90,10 +180,27 @@ exports.submitQuiz = async (req, res) => {
     return res.redirect('/enrollments/browse');
   }
 
+  if (hasReachedAttemptLimit(enrollment)) {
+    req.flash('error', 'You have used all 10 attempts for this enrollment. Please enroll again to continue.');
+    return res.redirect('/enrollments/my-quizzes');
+  }
+
   const quiz = await Quiz.findOne({ _id: req.params.quizId, status: 'published' }).populate('questions');
   if (!quiz) {
     req.flash('error', 'Quiz is not available.');
     return res.redirect('/enrollments/browse');
+  }
+
+  const rosterCount = await ExamRosterEntry.countDocuments({ quiz: quiz._id });
+  let rosterEntry = null;
+  if (rosterCount > 0) {
+    const submittedStudentId = normalizeStudentId(req.body.examRosterStudentId);
+    rosterEntry = await getVerifiedRosterEntry(req, quiz._id);
+
+    if (!rosterEntry || rosterEntry.studentId !== submittedStudentId) {
+      req.flash('error', 'You are not under this teacher or check your ID.');
+      return res.redirect(`/student/quizzes/${quiz._id}/take`);
+    }
   }
 
   const submittedAnswers = req.body.answers || {};
@@ -188,6 +295,10 @@ exports.submitQuiz = async (req, res) => {
   }
   enrollment.status = hasManualReview ? 'pending-review' : 'completed';
   await enrollment.save();
+
+  if (rosterEntry) {
+    await recordRosterAttempt(rosterEntry, attempt);
+  }
 
   const autoSubmitMessage = getAutoSubmitMessage(attempt.autoSubmitReason);
 

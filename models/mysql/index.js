@@ -14,6 +14,7 @@ const ID_FIELDS = new Set([
   'question',
   'attempt',
   'problem',
+  'teacher',
   'createdBy',
   'approvedBy',
   'blockedBy',
@@ -30,6 +31,7 @@ const DATE_FIELDS = new Set([
   'submittedAt',
   'reviewedAt',
   'executedAt',
+  'examDate',
   'lastAttemptDate',
   'lastUpdated',
   'createdAt',
@@ -43,6 +45,7 @@ const RELATIONS = {
   approvedBy: 'User',
   blockedBy: 'User',
   reviewedBy: 'User',
+  teacher: 'User',
   quiz: 'Quiz',
   question: 'Question',
   problem: 'Problem',
@@ -1067,6 +1070,31 @@ defineModel(
           ...entry,
           student: idOf(entry.student),
         })),
+    },
+  }
+);
+
+defineModel(
+  'ExamRosterEntry',
+  'exam_roster_entries',
+  {
+    teacher: { type: DataTypes.CHAR(24), allowNull: false },
+    quiz: { type: DataTypes.CHAR(24), allowNull: false },
+    studentId: { type: DataTypes.STRING(100), allowNull: false },
+    examName: { type: DataTypes.STRING(255), allowNull: false },
+    examDate: { type: DataTypes.DATE, allowNull: true },
+    attempts: { type: jsonColumn(), allowNull: true },
+    sourceData: { type: jsonColumn(), allowNull: true },
+  },
+  {
+    indexes: [
+      { fields: ['teacher', 'quiz'] },
+      { fields: ['quiz', 'studentId'] },
+    ],
+    jsonFields: { attempts: [], sourceData: {} },
+    scalarDefaults: {
+      attempts: [],
+      sourceData: {},
     },
   }
 );
