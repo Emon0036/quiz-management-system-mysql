@@ -838,6 +838,7 @@ defineModel(
     difficulty: { type: DataTypes.ENUM('Easy', 'Medium', 'Hard'), allowNull: false, defaultValue: 'Medium' },
     duration: { type: DataTypes.INTEGER, allowNull: false },
     passingMarks: { type: DataTypes.FLOAT, allowNull: false },
+    maxAttempts: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 10 },
     totalMarks: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
     createdBy: { type: DataTypes.CHAR(24), allowNull: false },
     questions: { type: jsonColumn(), allowNull: true },
@@ -857,6 +858,7 @@ defineModel(
       thumbnailPublicId: '',
       examType: 'quiz',
       difficulty: 'Medium',
+      maxAttempts: 10,
       totalMarks: 0,
       status: 'draft',
     },
@@ -894,6 +896,7 @@ defineModel(
   {
     student: { type: DataTypes.CHAR(24), allowNull: false },
     quiz: { type: DataTypes.CHAR(24), allowNull: false },
+    attemptNumber: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
     answers: { type: jsonColumn(), allowNull: true },
     score: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
     totalMarks: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
@@ -917,6 +920,7 @@ defineModel(
     jsonFields: { answers: [] },
     scalarDefaults: {
       score: 0,
+      attemptNumber: 1,
       totalMarks: 0,
       percentage: 0,
       status: 'submitted',

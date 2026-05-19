@@ -172,44 +172,79 @@ function formatDateTime(value) {
   return `${datePart} ${timePart}`;
 }
 
-function attemptLabel(attempt) {
-  return `A${attempt.attemptNumber || 1}`;
+function normalizedAttemptNumber(attempt, index = 0) {
+  const parsed = Number(attempt?.attemptNumber);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : index + 1;
 }
 
-function formatMarks(attempts) {
-  return (attempts || [])
-    .map((attempt) => {
-      if (attempt.status === 'pending-review') return `Pending (${attemptLabel(attempt)})`;
-      const score = Number(attempt.score || 0);
-      const totalMarks = Number(attempt.totalMarks || 0);
-      const percentage = Number(attempt.percentage || 0);
-      return `${score}/${totalMarks} (${percentage}%) (${attemptLabel(attempt)})`;
-    })
-    .join(', ');
+function sortAttempts(attempts) {
+  return (Array.isArray(attempts) ? attempts : [])
+    .map((attempt, index) => ({
+      ...attempt,
+      attemptNumber: normalizedAttemptNumber(attempt, index),
+    }))
+    .sort((left, right) => {
+      const numberOrder = normalizedAttemptNumber(left) - normalizedAttemptNumber(right);
+      if (numberOrder !== 0) return numberOrder;
+      return new Date(left.submittedAt || 0) - new Date(right.submittedAt || 0);
+    });
 }
 
-function formatAttemptDates(attempts) {
-  return (attempts || [])
-    .map((attempt) => `${formatDateTime(attempt.submittedAt)} (${attemptLabel(attempt)})`)
-    .join(', ');
+function formatAttemptMarks(attempt) {
+  if (!attempt) return '';
+  if (attempt.status === 'pending-review') return 'Pending';
+  const score = Number(attempt.score || 0);
+  const totalMarks = Number(attempt.totalMarks || 0);
+  const percentage = Number(attempt.percentage || 0);
+  return `${score}/${totalMarks} (${percentage}%)`;
 }
 
-function formatRosterCsv(entries) {
-  const headers = ['Student ID', 'Exam Name', 'Date', 'Marks', 'Attempt Dates'];
+function getAttemptColumnCount(entries) {
+  const maxAttemptNumber = (entries || []).reduce((max, entry) => {
+    const entryMax = sortAttempts(entry.attempts).reduce(
+      (attemptMax, attempt) => Math.max(attemptMax, normalizedAttemptNumber(attempt)),
+      0
+    );
+    return Math.max(max, entryMax);
+  }, 0);
+  return Math.max(1, maxAttemptNumber);
+}
+
+function formatRosterCsv(entries, quiz = {}) {
+  const attemptColumnCount = getAttemptColumnCount(entries);
+  const headers = ['Student ID', 'Exam Name', 'Date', 'Attempt Limit'];
+  for (let attemptNumber = 1; attemptNumber <= attemptColumnCount; attemptNumber += 1) {
+    headers.push(
+      `Attempt ${attemptNumber} Marks`,
+      `Attempt ${attemptNumber} Submitted At`,
+      `Attempt ${attemptNumber} Status`
+    );
+  }
+
   const lines = [headers.map(escapeCsv).join(',')];
 
   entries.forEach((entry) => {
-    const attempts = Array.isArray(entry.attempts) ? entry.attempts : [];
+    const attemptsByNumber = new Map(
+      sortAttempts(entry.attempts).map((attempt) => [normalizedAttemptNumber(attempt), attempt])
+    );
+    const row = [
+      entry.studentId,
+      entry.examName,
+      formatDate(entry.examDate),
+      quiz.maxAttempts || '',
+    ];
+
+    for (let attemptNumber = 1; attemptNumber <= attemptColumnCount; attemptNumber += 1) {
+      const attempt = attemptsByNumber.get(attemptNumber);
+      row.push(
+        formatAttemptMarks(attempt),
+        formatDateTime(attempt?.submittedAt),
+        attempt?.status || ''
+      );
+    }
+
     lines.push(
-      [
-        entry.studentId,
-        entry.examName,
-        formatDate(entry.examDate),
-        formatMarks(attempts),
-        formatAttemptDates(attempts),
-      ]
-        .map(escapeCsv)
-        .join(',')
+      row.map(escapeCsv).join(',')
     );
   });
 
@@ -230,11 +265,20 @@ async function recordRosterAttempt(entry, attempt) {
 
   let record = entry.attempts.find((item) => String(item.attempt) === attemptId);
   if (!record) {
+    const submittedAttemptNumber = Number(attempt.attemptNumber);
+    const nextAttemptNumber = entry.attempts.reduce(
+      (max, item, index) => Math.max(max, normalizedAttemptNumber(item, index)),
+      0
+    ) + 1;
     record = {
       attempt: attemptId,
-      attemptNumber: entry.attempts.length + 1,
+      attemptNumber: Number.isFinite(submittedAttemptNumber) && submittedAttemptNumber > 0
+        ? Math.floor(submittedAttemptNumber)
+        : nextAttemptNumber,
     };
     entry.attempts.push(record);
+  } else if (!record.attemptNumber && attempt.attemptNumber) {
+    record.attemptNumber = normalizedAttemptNumber(attempt);
   }
 
   record.submittedAt = attempt.submittedAt || new Date();

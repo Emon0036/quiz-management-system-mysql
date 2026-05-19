@@ -33,12 +33,13 @@
     <div class="table-card table-shell">
       <div class="table-responsive">
         <table class="table align-middle">
-          <thead><tr><th>Student</th><th>Score</th><th>Status</th><th>Submitted</th><th class="text-end">Action</th></tr></thead>
+          <thead><tr><th>Student</th><th>Attempt</th><th>Score</th><th>Status</th><th>Submitted</th><th class="text-end">Action</th></tr></thead>
           <tbody>
-            <% if (attempts.length === 0) { %><tr><td colspan="5" class="text-center text-muted py-4">No attempts yet.</td></tr><% } %>
+            <% if (attempts.length === 0) { %><tr><td colspan="6" class="text-center text-muted py-4">No attempts yet.</td></tr><% } %>
             <% attempts.forEach((attempt) => { %>
               <tr>
                 <td><%= attempt.student.name %><div class="small text-muted"><%= attempt.student.email %></div></td>
+                <td>#<%= attempt.attemptNumber || 1 %></td>
                 <td><%= attempt.score %>/<%= attempt.totalMarks %> (<%= attempt.percentage %>%)</td>
                 <td><span class="badge text-bg-<%= attempt.status === 'pending-review' ? 'warning' : 'success' %>"><%= attempt.status %></span></td>
                 <td><%= attempt.submittedAt.toLocaleString() %></td>

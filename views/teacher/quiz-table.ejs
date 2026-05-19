@@ -15,7 +15,7 @@
               <% } %>
               <div>
                 <strong><%= quiz.title %></strong>
-                <div class="small text-muted"><%= quiz.duration %> minutes · <%= quiz.completedCount || 0 %> completed</div>
+                <div class="small text-muted"><%= quiz.duration %> minutes &middot; <%= quiz.maxAttempts || 10 %> attempts/purchase &middot; <%= quiz.completedCount || 0 %> completed</div>
               </div>
             </div>
           </td>

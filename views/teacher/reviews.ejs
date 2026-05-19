@@ -17,6 +17,7 @@
             <tr>
               <th>Student</th>
               <th>Exam</th>
+              <th>Attempt</th>
               <th>Score</th>
               <th>Submitted</th>
               <th class="text-end">Action</th>
@@ -24,7 +25,7 @@
           </thead>
           <tbody>
             <% if (!attempts || attempts.length === 0) { %>
-              <tr><td colspan="5" class="text-center text-muted py-4">No answers are waiting for review.</td></tr>
+              <tr><td colspan="6" class="text-center text-muted py-4">No answers are waiting for review.</td></tr>
             <% } %>
             <% (attempts || []).forEach((attempt) => { %>
               <tr>
@@ -36,6 +37,7 @@
                   <strong><%= attempt.quiz?.title || 'Deleted exam' %></strong>
                   <div class="small text-muted"><%= attempt.quiz?.category || '' %></div>
                 </td>
+                <td>#<%= attempt.attemptNumber || 1 %></td>
                 <td><%= attempt.score %>/<%= attempt.totalMarks %> (<%= attempt.percentage %>%)</td>
                 <td><%= attempt.submittedAt ? attempt.submittedAt.toLocaleString() : '' %></td>
                 <td class="text-end">

@@ -2205,6 +2205,13 @@ textarea.form-input {
   margin-top: 0.1rem;
 }
 
+.question-type-badge {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #0e5c8b, #1c9b8f) !important;
+  border: 1px solid rgba(14, 92, 139, 0.18) !important;
+  box-shadow: 0 8px 18px rgba(14, 92, 139, 0.16);
+}
+
 .question-item:last-child {
   margin-bottom: 0;
   border-bottom: none;

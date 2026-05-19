@@ -14,6 +14,12 @@ const {
   parseRosterSheet,
   updateRosterAttemptFromReview,
 } = require('../utils/examRosterSheet');
+const {
+  DEFAULT_ATTEMPT_LIMIT,
+  MAX_ATTEMPT_LIMIT,
+  MIN_ATTEMPT_LIMIT,
+  normalizeAttemptLimit,
+} = require('../utils/attemptLimits');
 
 const EXAM_TYPES = ['quiz', 'true-false', 'short-answer', 'coding-test'];
 const DIFFICULTY_LEVELS = ['Easy', 'Medium', 'Hard'];
@@ -43,6 +49,8 @@ function getDocumentId(value) {
 function buildQuizPayload(body) {
   const duration = Number(body.duration);
   const passingMarks = Number(body.passingMarks);
+  const submittedAttemptLimit = String(body.maxAttempts || '').trim();
+  const parsedAttemptLimit = Number(submittedAttemptLimit || DEFAULT_ATTEMPT_LIMIT);
   const payload = {
     examType: EXAM_TYPES.includes(body.examType) ? body.examType : 'quiz',
     title: cleanText(body.title),
@@ -51,6 +59,7 @@ function buildQuizPayload(body) {
     difficulty: DIFFICULTY_LEVELS.includes(body.difficulty) ? body.difficulty : 'Medium',
     duration,
     passingMarks,
+    maxAttempts: normalizeAttemptLimit(parsedAttemptLimit),
   };
 
   const errors = [];
@@ -58,6 +67,13 @@ function buildQuizPayload(body) {
   if (!Number.isFinite(duration) || duration < 1) errors.push('Duration must be at least 1 minute.');
   if (!Number.isFinite(passingMarks) || passingMarks < 0 || passingMarks > 100) {
     errors.push('Passing percentage must be between 0 and 100.');
+  }
+  if (
+    !Number.isFinite(parsedAttemptLimit) ||
+    parsedAttemptLimit < MIN_ATTEMPT_LIMIT ||
+    parsedAttemptLimit > MAX_ATTEMPT_LIMIT
+  ) {
+    errors.push(`Attempts per purchase must be between ${MIN_ATTEMPT_LIMIT} and ${MAX_ATTEMPT_LIMIT}.`);
   }
 
   return { payload, errors };
@@ -275,7 +291,13 @@ exports.listQuizzes = async (req, res) => {
   res.render('teacher/quizzes', { title: 'Manage Quizzes', quizzes });
 };
 
-exports.showCreateQuiz = (req, res) => res.render('teacher/quiz-form', { title: 'Create Quiz', quiz: {}, questions: [], action: '/teacher/quizzes' });
+exports.showCreateQuiz = (req, res) =>
+  res.render('teacher/quiz-form', {
+    title: 'Create Quiz',
+    quiz: { maxAttempts: DEFAULT_ATTEMPT_LIMIT },
+    questions: [],
+    action: '/teacher/quizzes',
+  });
 
 exports.createQuiz = async (req, res) => {
   const { payload, errors } = buildQuizPayload(req.body);
@@ -452,7 +474,7 @@ exports.downloadRoster = async (req, res) => {
   }
 
   const entries = await getRosterEntriesForQuiz(quiz._id);
-  const csv = formatRosterCsv(entries);
+  const csv = formatRosterCsv(entries, quiz);
   const filename = `${quiz.title || 'exam'}-student-sheet.csv`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')

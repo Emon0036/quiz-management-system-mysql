@@ -12,8 +12,11 @@ const {
   normalizeStudentId,
   recordRosterAttempt,
 } = require('../utils/examRosterSheet');
-
-const MAX_ATTEMPTS_PER_ENROLLMENT = 10;
+const {
+  getEnrollmentAttemptCount,
+  getQuizAttemptLimit,
+  hasReachedAttemptLimit,
+} = require('../utils/attemptLimits');
 
 function getAutoSubmitMessage(reason) {
   const messages = {
@@ -59,10 +62,6 @@ async function getVerifiedRosterEntry(req, quizId) {
   return entry;
 }
 
-function hasReachedAttemptLimit(enrollment) {
-  return Number(enrollment?.attempts || 0) >= MAX_ATTEMPTS_PER_ENROLLMENT;
-}
-
 exports.dashboard = async (req, res) => {
   const [recentAttempts, availableQuizCount, completedCount, enrollments, progress, pendingReviewCount] = await Promise.all([
     Attempt.find({ student: req.user._id }).populate('quiz', 'title category examType').sort('-submittedAt').limit(5),
@@ -105,21 +104,25 @@ exports.quizList = async (req, res) => {
 };
 
 exports.takeQuiz = async (req, res) => {
-  const enrollment = await Enrollment.findOne({ student: req.user._id, quiz: req.params.quizId }).populate('bestAttemptId');
+  const [enrollment, quiz] = await Promise.all([
+    Enrollment.findOne({ student: req.user._id, quiz: req.params.quizId }).populate('bestAttemptId'),
+    Quiz.findOne({ _id: req.params.quizId, status: 'published' }).populate('questions'),
+  ]);
+
   if (!enrollment) {
     req.flash('error', 'You must enroll first before attempting this exam.');
     return res.redirect('/enrollments/browse');
   }
 
-  if (hasReachedAttemptLimit(enrollment)) {
-    req.flash('error', 'You have used all 10 attempts for this enrollment. Please enroll again to continue.');
-    return res.redirect('/enrollments/my-quizzes');
-  }
-
-  const quiz = await Quiz.findOne({ _id: req.params.quizId, status: 'published' }).populate('questions');
   if (!quiz) {
     req.flash('error', 'Quiz is not available.');
     return res.redirect('/enrollments/browse');
+  }
+
+  const attemptLimit = getQuizAttemptLimit(quiz);
+  if (hasReachedAttemptLimit(enrollment, quiz)) {
+    req.flash('error', `You have used all ${attemptLimit} attempts for this purchase. Please purchase this quiz again to continue.`);
+    return res.redirect('/enrollments/my-quizzes');
   }
 
   const rosterCount = await ExamRosterEntry.countDocuments({ quiz: quiz._id });
@@ -139,25 +142,35 @@ exports.takeQuiz = async (req, res) => {
     };
   }
 
-  return res.render('student/take-quiz', { title: quiz.title, quiz, rosterAccess });
+  return res.render('student/take-quiz', {
+    title: quiz.title,
+    quiz,
+    rosterAccess,
+    attemptLimit,
+    currentAttemptNumber: getEnrollmentAttemptCount(enrollment) + 1,
+  });
 };
 
 exports.verifyExamId = async (req, res) => {
-  const enrollment = await Enrollment.findOne({ student: req.user._id, quiz: req.params.quizId });
+  const [enrollment, quiz] = await Promise.all([
+    Enrollment.findOne({ student: req.user._id, quiz: req.params.quizId }),
+    Quiz.findOne({ _id: req.params.quizId, status: 'published' }),
+  ]);
+
   if (!enrollment) {
     req.flash('error', 'You must enroll first before attempting this exam.');
     return res.redirect('/enrollments/browse');
   }
 
-  if (hasReachedAttemptLimit(enrollment)) {
-    req.flash('error', 'You have used all 10 attempts for this enrollment. Please enroll again to continue.');
-    return res.redirect('/enrollments/my-quizzes');
-  }
-
-  const quiz = await Quiz.findOne({ _id: req.params.quizId, status: 'published' });
   if (!quiz) {
     req.flash('error', 'Quiz is not available.');
     return res.redirect('/enrollments/browse');
+  }
+
+  const attemptLimit = getQuizAttemptLimit(quiz);
+  if (hasReachedAttemptLimit(enrollment, quiz)) {
+    req.flash('error', `You have used all ${attemptLimit} attempts for this purchase. Please purchase this quiz again to continue.`);
+    return res.redirect('/enrollments/my-quizzes');
   }
 
   const studentId = normalizeStudentId(req.body.studentId);
@@ -174,21 +187,25 @@ exports.verifyExamId = async (req, res) => {
 
 exports.submitQuiz = async (req, res) => {
   // Fetch the published quiz with all its questions
-  const enrollment = await Enrollment.findOne({ student: req.user._id, quiz: req.params.quizId });
+  const [enrollment, quiz] = await Promise.all([
+    Enrollment.findOne({ student: req.user._id, quiz: req.params.quizId }),
+    Quiz.findOne({ _id: req.params.quizId, status: 'published' }).populate('questions'),
+  ]);
+
   if (!enrollment) {
     req.flash('error', 'You must enroll first before submitting this exam.');
     return res.redirect('/enrollments/browse');
   }
 
-  if (hasReachedAttemptLimit(enrollment)) {
-    req.flash('error', 'You have used all 10 attempts for this enrollment. Please enroll again to continue.');
-    return res.redirect('/enrollments/my-quizzes');
-  }
-
-  const quiz = await Quiz.findOne({ _id: req.params.quizId, status: 'published' }).populate('questions');
   if (!quiz) {
     req.flash('error', 'Quiz is not available.');
     return res.redirect('/enrollments/browse');
+  }
+
+  const attemptLimit = getQuizAttemptLimit(quiz);
+  if (hasReachedAttemptLimit(enrollment, quiz)) {
+    req.flash('error', `You have used all ${attemptLimit} attempts for this purchase. Please purchase this quiz again to continue.`);
+    return res.redirect('/enrollments/my-quizzes');
   }
 
   const rosterCount = await ExamRosterEntry.countDocuments({ quiz: quiz._id });
@@ -250,11 +267,13 @@ exports.submitQuiz = async (req, res) => {
 
   // Calculate percentage score
   const percentage = quiz.totalMarks ? Math.round((score / quiz.totalMarks) * 100) : 0;
+  const attemptNumber = (await Attempt.countDocuments({ student: req.user._id, quiz: quiz._id })) + 1;
   
   // Create an attempt record storing all answers, scores, and metadata
   const attempt = await Attempt.create({
     student: req.user._id,
     quiz: quiz._id,
+    attemptNumber,
     answers,
     score,
     totalMarks: quiz.totalMarks,
@@ -288,7 +307,7 @@ exports.submitQuiz = async (req, res) => {
     await leaderboard.recordAttempt(req.user._id, score, percentage);
   }
 
-  enrollment.attempts += 1;
+  enrollment.attempts = getEnrollmentAttemptCount(enrollment) + 1;
   if (!enrollment.bestAttemptId || percentage > enrollment.bestScore) {
     enrollment.bestAttemptId = attempt._id;
     enrollment.bestScore = percentage;

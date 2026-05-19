@@ -1,11 +1,15 @@
 <% layout('layouts/main') %>
+<%
+  const displayedAttemptNumber = typeof currentAttemptNumber !== 'undefined' ? currentAttemptNumber : 1;
+  const displayedAttemptLimit = typeof attemptLimit !== 'undefined' ? attemptLimit : (quiz.maxAttempts || 10);
+%>
 <section class="page-shell">
   <div class="page-container page-stack">
     <div class="quiz-header">
       <div>
         <span class="eyebrow"><%= quiz.category %></span>
         <h1><%= quiz.title %></h1>
-        <p><%= quiz.questions.length %> question<%= quiz.questions.length === 1 ? '' : 's' %> · <%= quiz.totalMarks %> marks total</p>
+        <p><%= quiz.questions.length %> question<%= quiz.questions.length === 1 ? '' : 's' %> &middot; <%= quiz.totalMarks %> marks total &middot; Attempt <%= displayedAttemptNumber %> of <%= displayedAttemptLimit %></p>
       </div>
       <% if (quiz.thumbnailUrl) { %>
         <img class="quiz-header__thumbnail" src="<%= quiz.thumbnailUrl %>" alt="<%= quiz.title %> thumbnail">

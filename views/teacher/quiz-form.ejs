@@ -67,14 +67,19 @@
         </div>
 
         <div class="row g-3">
-          <div class="col-md-6">
+          <div class="col-md-4">
             <label class="form-label" for="duration">Duration minutes</label>
             <input id="duration" class="form-control" type="number" name="duration" min="1" placeholder="Duration minutes" value="<%= quiz.duration || '' %>" required>
           </div>
 
-          <div class="col-md-6">
+          <div class="col-md-4">
             <label class="form-label" for="passingMarks">Passing %</label>
             <input id="passingMarks" class="form-control" type="number" name="passingMarks" min="0" max="100" placeholder="Passing %" value="<%= quiz.passingMarks || '' %>" required>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label" for="maxAttempts">Attempts per purchase</label>
+            <input id="maxAttempts" class="form-control" type="number" name="maxAttempts" min="1" max="100" placeholder="Attempts" value="<%= quiz.maxAttempts || 10 %>" required>
           </div>
         </div>
 
@@ -219,7 +224,7 @@
               <div>
                 <strong><%= index + 1 %>. <%= question.questionText %></strong>
                 <div class="small text-muted">
-                  <span class="badge bg-secondary me-2"><%= question.type %></span>
+                  <span class="badge question-type-badge me-2"><%= question.type %></span>
                   <%= question.marks %> marks
                   <% if (question.type === 'coding') { %>
                     | <%= question.language || 'Coding' %> | <%= question.testCases ? question.testCases.length : 0 %> test cases

@@ -7,6 +7,7 @@
       <div class="score-circle"><%= attempt.percentage %>%</div>
       <p class="lead"><%= attempt.status === 'pending-review' ? 'Pending manual review' : attempt.passed ? 'Passed' : 'Needs improvement' %></p>
       <p><%= attempt.score %> out of <%= attempt.totalMarks %> marks</p>
+      <p class="text-muted">Attempt <%= attempt.attemptNumber || 1 %></p>
     </div>
 
     <div class="form-panel">

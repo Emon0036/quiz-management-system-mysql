@@ -5,8 +5,7 @@ const GlobalLeaderboard = require('../models/GlobalLeaderboard');
 const Attempt = require('../models/Attempt');
 const Problem = require('../models/Problem');
 const Submission = require('../models/Submission');
-
-const MAX_ATTEMPTS_PER_ENROLLMENT = 10;
+const { getQuizAttemptLimit, hasReachedAttemptLimit } = require('../utils/attemptLimits');
 
 function normalizeCategory(category) {
   const value = String(category || '').trim();
@@ -156,18 +155,19 @@ exports.enrollQuiz = async (req, res) => {
     });
 
     if (existing) {
-      if (Number(existing.attempts || 0) >= MAX_ATTEMPTS_PER_ENROLLMENT) {
+      const attemptLimit = getQuizAttemptLimit(quiz);
+      if (hasReachedAttemptLimit(existing, quiz)) {
         existing.attempts = 0;
         existing.status = 'enrolled';
         existing.bestScore = 0;
         existing.bestAttemptId = undefined;
         await existing.save();
 
-        req.flash('success', `Re-enrolled in "${quiz.title}". You have 10 fresh attempts.`);
+        req.flash('success', `Purchased "${quiz.title}" again. You have ${attemptLimit} fresh attempt${attemptLimit === 1 ? '' : 's'}.`);
         return res.redirect('/enrollments/my-quizzes');
       }
 
-      req.flash('success', 'You are already enrolled in this exam.');
+      req.flash('success', 'You already have access to this exam.');
       return res.redirect('/enrollments/my-quizzes');
     }
 
@@ -229,7 +229,7 @@ exports.getEnrolledQuizzes = async (req, res) => {
             .populate({
               path: 'quiz',
               match: { status: 'published' },
-              select: 'title category examType difficulty duration totalMarks passingMarks thumbnailUrl',
+              select: 'title category examType difficulty duration totalMarks passingMarks maxAttempts thumbnailUrl',
               populate: { path: 'createdBy', select: 'name' },
             })
             .populate({ path: 'bestAttemptId', select: 'score percentage' })

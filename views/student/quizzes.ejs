@@ -97,7 +97,8 @@
             <% group.quizzes.forEach((quiz) => { %>
               <% const isEnrolled = (enrolledQuizIds || []).includes(String(quiz._id)); %>
               <% const enrollment = (enrollmentByQuizId || {})[String(quiz._id)] || null; %>
-              <% const needsReEnroll = enrollment && Number(enrollment.attempts || 0) >= 10; %>
+              <% const attemptLimit = Number(quiz.maxAttempts || 10); %>
+              <% const needsReEnroll = enrollment && Number(enrollment.attempts || 0) >= attemptLimit; %>
               <article class="quiz-card">
                 <div class="quiz-card__thumbnail">
                   <% if (quiz.thumbnailUrl) { %>
@@ -120,13 +121,14 @@
                 <div class="quiz-card__facts">
                   <span><i class="fas fa-clock me-2"></i><%= quiz.duration %> minutes</span>
                   <span><i class="fas fa-layer-group me-2"></i><%= quiz.totalMarks %> total marks</span>
+                  <span><i class="fas fa-rotate me-2"></i><%= attemptLimit %> attempt<%= attemptLimit === 1 ? '' : 's' %> per purchase</span>
                   <span><i class="fas fa-bullseye me-2"></i>Pass mark <%= quiz.passingMarks %>%</span>
                   <span><i class="fas fa-user-tie me-2"></i><%= quiz.createdBy?.name || 'Teacher' %></span>
                 </div>
                 <div class="quiz-card__actions">
                   <% if (needsReEnroll) { %>
                     <form action="/enrollments/<%= quiz._id %>/enroll" method="POST">
-                      <button class="btn btn-success btn-sm" type="submit">Re-enroll</button>
+                      <button class="btn btn-success btn-sm" type="submit">Purchase again</button>
                     </form>
                   <% } else if (isEnrolled) { %>
                     <a class="btn btn-primary btn-sm" href="/student/quizzes/<%= quiz._id %>/take">Attempt now</a>

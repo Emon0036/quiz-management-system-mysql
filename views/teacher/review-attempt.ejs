@@ -4,6 +4,7 @@
     <div class="page-heading">
       <div>
         <span class="eyebrow">Manual Review</span>
+        <p class="text-muted mb-1">Attempt <%= attempt.attemptNumber || 1 %></p>
         <h1><%= attempt.student.name %> · <%= attempt.quiz.title %></h1>
         <p><%= attempt.student.email %> · Review written or coding answers and assign final marks.</p>
       </div>

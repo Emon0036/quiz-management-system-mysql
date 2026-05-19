@@ -22,6 +22,7 @@
             <thead>
               <tr>
                 <th>Exam</th>
+                <th>Attempt</th>
                 <th>Status</th>
                 <th>Score / Status</th>
                 <th>Submitted</th>
@@ -35,6 +36,7 @@
                     <strong><%= attempt.quiz?.title || 'Unknown Exam' %></strong>
                     <div class="small text-muted"><%= attempt.quiz?.category || 'General' %></div>
                   </td>
+                  <td>#<%= attempt.attemptNumber || 1 %></td>
                   <td>
                     <% if (attempt.status === 'pending-review') { %>
                       <span class="badge text-bg-warning">Pending Review</span>

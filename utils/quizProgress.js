@@ -38,8 +38,10 @@ async function finalizeQuizAttempt(attemptId) {
   const enrollment = await Enrollment.findOne({ student: attempt.student, quiz: attempt.quiz._id });
   if (enrollment) {
     enrollment.status = 'completed';
-    enrollment.bestAttemptId = attempt._id;
-    enrollment.bestScore = attempt.percentage;
+    if (!enrollment.bestAttemptId || Number(attempt.percentage || 0) >= Number(enrollment.bestScore || 0)) {
+      enrollment.bestAttemptId = attempt._id;
+      enrollment.bestScore = attempt.percentage;
+    }
     await enrollment.save();
   }
 
