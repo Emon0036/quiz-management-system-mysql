@@ -1,11 +1,17 @@
 const ExamRosterEntry = require('../models/ExamRosterEntry');
+const User = require('../models/User');
 
 const STUDENT_ID_HEADERS = ['studentid', 'student_id', 'student id', 'id', 'roll', 'rollno', 'roll number'];
+const STUDENT_NAME_HEADERS = ['studentname', 'student_name', 'student name', 'name', 'full name', 'fullname'];
 const EXAM_NAME_HEADERS = ['examname', 'exam_name', 'exam name', 'exam', 'quiz', 'quizname', 'quiz name'];
 const EXAM_DATE_HEADERS = ['date', 'examdate', 'exam_date', 'exam date'];
 
 function normalizeStudentId(value) {
   return String(value || '').trim().toUpperCase();
+}
+
+function normalizeStudentName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
 function normalizeHeader(value) {
@@ -120,6 +126,7 @@ function parseRosterSheet(buffer, fallbackExamName) {
   const delimiter = detectDelimiter(rows[0]);
   const headers = parseCsvLine(rows[0], delimiter);
   const studentIdColumn = findColumn(headers, STUDENT_ID_HEADERS);
+  const studentNameColumn = findColumn(headers, STUDENT_NAME_HEADERS);
   const examNameColumn = findColumn(headers, EXAM_NAME_HEADERS);
   const examDateColumn = findColumn(headers, EXAM_DATE_HEADERS);
 
@@ -137,11 +144,13 @@ function parseRosterSheet(buffer, fallbackExamName) {
       });
 
       const studentId = normalizeStudentId(sourceData[studentIdColumn]);
+      const studentName = normalizeStudentName(studentNameColumn ? sourceData[studentNameColumn] : '');
       const examName = String(examNameColumn ? sourceData[examNameColumn] : fallbackExamName || '').trim();
       const examDate = parseFlexibleDate(examDateColumn ? sourceData[examDateColumn] : '');
 
       return {
         studentId,
+        studentName,
         examName,
         examDate,
         sourceData,
@@ -212,7 +221,7 @@ function getAttemptColumnCount(entries) {
 
 function formatRosterCsv(entries, quiz = {}) {
   const attemptColumnCount = getAttemptColumnCount(entries);
-  const headers = ['Student ID', 'Exam Name', 'Date', 'Attempt Limit'];
+  const headers = ['Student ID', 'Student Name', 'Exam Name', 'Date', 'Attempt Limit'];
   for (let attemptNumber = 1; attemptNumber <= attemptColumnCount; attemptNumber += 1) {
     headers.push(
       `Attempt ${attemptNumber} Marks`,
@@ -229,6 +238,7 @@ function formatRosterCsv(entries, quiz = {}) {
     );
     const row = [
       entry.studentId,
+      entry.studentName || '',
       entry.examName,
       formatDate(entry.examDate),
       quiz.maxAttempts || '',
@@ -289,6 +299,16 @@ async function recordRosterAttempt(entry, attempt) {
   record.passed = Boolean(attempt.passed);
   if (record.status === 'reviewed') record.reviewedAt = new Date();
 
+  if (!entry.studentName && attempt.student) {
+    const studentRef = attempt.student;
+    const userId = typeof studentRef === 'object'
+      ? String(studentRef._id || studentRef.id || '')
+      : String(studentRef || '');
+    const userName = studentRef?.name || (userId ? (await User.findById(userId))?.name : '');
+    const normalizedName = normalizeStudentName(userName);
+    if (normalizedName) entry.studentName = normalizedName;
+  }
+
   await entry.save();
   return entry;
 }
@@ -314,6 +334,7 @@ module.exports = {
   findRosterEntryForQuiz,
   normalizeExamName,
   normalizeStudentId,
+  normalizeStudentName,
   parseRosterSheet,
   recordRosterAttempt,
   updateRosterAttemptFromReview,

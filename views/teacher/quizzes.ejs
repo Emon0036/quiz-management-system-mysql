@@ -1,8 +1,16 @@
 <% layout('layouts/main') %>
 <section class="page-shell">
   <div class="page-container page-stack">
-    <% const publishedCount = (quizzes || []).filter((quiz) => quiz.status === 'published').length; %>
-    <% const draftCount = (quizzes || []).filter((quiz) => quiz.status !== 'published').length; %>
+    <% const quizList = typeof quizzes !== 'undefined' ? quizzes : []; %>
+    <% const teacherQuery = typeof query !== 'undefined' && query ? query : {}; %>
+    <% const typeLabels = { quiz: 'Quiz', 'true-false': 'True/False', 'short-answer': 'Short Question', 'coding-test': 'Coding Exam' }; %>
+    <% const typeValues = ['quiz', 'true-false', 'short-answer', 'coding-test']; %>
+    <% const currentType = typeof selectedType !== 'undefined' ? selectedType : (teacherQuery.type || 'all'); %>
+    <% const currentTypeLabel = currentType === 'all' ? 'all types' : (typeLabels[currentType] || currentType); %>
+    <% const publishedCount = typeof allPublishedCount !== 'undefined' ? allPublishedCount : quizList.filter((quiz) => quiz.status === 'published').length; %>
+    <% const draftCount = typeof allDraftCount !== 'undefined' ? allDraftCount : quizList.filter((quiz) => quiz.status !== 'published').length; %>
+    <% const totalQuizCount = typeof allQuizCount !== 'undefined' ? allQuizCount : quizList.length; %>
+    <% const buildTypeLink = (typeValue) => `/teacher/quizzes?type=${encodeURIComponent(typeValue)}`; %>
     <div class="page-heading">
       <div>
         <span class="eyebrow">Teacher</span>
@@ -12,10 +20,33 @@
       <a href="/teacher/quizzes/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i>Create Quiz</a>
     </div>
 
+    <form class="filter-bar" method="GET" action="/teacher/quizzes">
+      <select class="form-select" name="type">
+        <option value="all" <%= currentType === 'all' ? 'selected' : '' %>>All types</option>
+        <% typeValues.forEach((typeValue) => { %>
+          <option value="<%= typeValue %>" <%= currentType === typeValue ? 'selected' : '' %>><%= typeLabels[typeValue] %></option>
+        <% }) %>
+      </select>
+      <button class="btn btn-outline-primary" type="submit">
+        <i class="fas fa-sliders"></i>
+        Filter
+      </button>
+      <% if (currentType !== 'all') { %>
+        <a class="btn btn-outline-secondary" href="/teacher/quizzes">Reset</a>
+      <% } %>
+    </form>
+
+    <div class="chip-group">
+      <a class="filter-chip <%= currentType === 'all' ? 'is-active' : '' %>" href="<%= buildTypeLink('all') %>">All types</a>
+      <% typeValues.forEach((typeValue) => { %>
+        <a class="filter-chip <%= currentType === typeValue ? 'is-active' : '' %>" href="<%= buildTypeLink(typeValue) %>"><%= typeLabels[typeValue] %></a>
+      <% }) %>
+    </div>
+
     <div class="summary-grid">
       <article class="summary-card">
         <span>Total Quizzes</span>
-        <strong><%= quizzes.length %></strong>
+        <strong><%= totalQuizCount %></strong>
         <small>all quizzes currently in your library</small>
       </article>
       <article class="summary-card">
@@ -28,10 +59,18 @@
         <strong><%= draftCount %></strong>
         <small>assessments waiting to be published</small>
       </article>
+      <article class="summary-card">
+        <span>Showing</span>
+        <strong><%= quizList.length %></strong>
+        <small><%= currentType === 'all' ? 'quizzes in the current table' : `${currentTypeLabel} quizzes in the current table` %></small>
+      </article>
     </div>
 
     <div class="table-card table-shell">
-      <%- include('quiz-table', { quizzes }) %>
+      <%- include('quiz-table', {
+        quizzes: quizList,
+        emptyText: currentType === 'all' ? 'No quizzes yet.' : `No ${currentTypeLabel} quizzes found.`
+      }) %>
     </div>
   </div>
 </section>

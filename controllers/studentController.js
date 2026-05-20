@@ -10,6 +10,7 @@ const { finalizeQuizAttempt } = require('../utils/quizProgress');
 const {
   findRosterEntryForQuiz,
   normalizeStudentId,
+  normalizeStudentName,
   recordRosterAttempt,
 } = require('../utils/examRosterSheet');
 const {
@@ -30,7 +31,7 @@ function getAutoSubmitMessage(reason) {
     dev_tools_attempted: 'developer tools were opened or attempted',
     focus_lost: 'you left the quiz tab/window',
     page_hide: 'the quiz page was hidden or closed',
-    security_recovery_timeout: 'you did not return to the exam within 1 minute',
+    security_recovery_timeout: 'you did not return to the exam within 15 seconds',
     tab_hidden: 'you switched away from the quiz tab',
     time_up: 'time ran out',
     window_blur: 'you switched away from the quiz window',
@@ -49,6 +50,7 @@ function saveRosterAccess(req, quizId, entry) {
   req.session.examRosterAccess[String(quizId)] = {
     entryId: String(entry._id),
     studentId: entry.studentId,
+    studentName: entry.studentName || '',
     verifiedAt: Date.now(),
   };
 }
@@ -138,6 +140,7 @@ exports.takeQuiz = async (req, res) => {
 
     rosterAccess = {
       studentId: rosterEntry.studentId,
+      studentName: rosterEntry.studentName || '',
       entryId: rosterEntry._id,
     };
   }
@@ -178,6 +181,11 @@ exports.verifyExamId = async (req, res) => {
   if (!rosterEntry) {
     req.flash('error', 'You are not under this teacher or check your ID.');
     return res.redirect(`/student/quizzes/${quiz._id}/take`);
+  }
+
+  if (!rosterEntry.studentName && req.user?.name) {
+    rosterEntry.studentName = normalizeStudentName(req.user.name);
+    await rosterEntry.save();
   }
 
   saveRosterAccess(req, quiz._id, rosterEntry);

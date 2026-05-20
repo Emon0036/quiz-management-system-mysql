@@ -54,6 +54,10 @@ async function ensureApplicationColumns() {
     allowNull: false,
     defaultValue: 1,
   });
+  await ensureColumn('exam_roster_entries', 'studentName', {
+    type: DataTypes.STRING(150),
+    allowNull: true,
+  });
 
   await sequelize.query('UPDATE `quizzes` SET `maxAttempts` = 10 WHERE `maxAttempts` IS NULL OR `maxAttempts` < 1');
   await sequelize.query('UPDATE `attempts` SET `attemptNumber` = 1 WHERE `attemptNumber` IS NULL OR `attemptNumber` < 1');

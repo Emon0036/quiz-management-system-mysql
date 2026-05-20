@@ -1,7 +1,7 @@
-Student ID,Exam Name,Date
-CSE-001,DBMS Fundamentals Practice Exam,2026-05-20
-CSE-002,DBMS Fundamentals Practice Exam,2026-05-20
-WEB-001,Web Development True/False Check,2026-05-21
-WEB-002,Web Development True/False Check,2026-05-21
-CODE-001,JavaScript Coding Exam Demo,2026-05-22
-CODE-002,JavaScript Coding Exam Demo,2026-05-22
+Student ID,Student Name,Exam Name,Date
+CSE-001,Ayesha Rahman,DBMS Fundamentals Practice Exam,2026-05-20
+CSE-002,Nabil Hasan,DBMS Fundamentals Practice Exam,2026-05-20
+WEB-001,Samira Khan,Web Development True/False Check,2026-05-21
+WEB-002,Tanvir Ahmed,Web Development True/False Check,2026-05-21
+CODE-001,Mahira Islam,JavaScript Coding Exam Demo,2026-05-22
+CODE-002,Farhan Hossain,JavaScript Coding Exam Demo,2026-05-22

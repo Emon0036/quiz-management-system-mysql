@@ -11,6 +11,7 @@ const {
   formatRosterCsv,
   normalizeExamName,
   normalizeStudentId,
+  normalizeStudentName,
   parseRosterSheet,
   updateRosterAttemptFromReview,
 } = require('../utils/examRosterSheet');
@@ -206,6 +207,7 @@ async function importRosterRowsForQuiz({ quiz, teacherId, rows }) {
         teacher: teacherId,
         quiz: quiz._id,
         studentId,
+        studentName: normalizeStudentName(row.studentName),
         examName: row.examName || quiz.title,
         examDate: row.examDate,
         attempts: [],
@@ -213,6 +215,7 @@ async function importRosterRowsForQuiz({ quiz, teacherId, rows }) {
       });
     } else {
       entry.teacher = teacherId;
+      entry.studentName = normalizeStudentName(row.studentName) || entry.studentName || '';
       entry.examName = row.examName || quiz.title;
       entry.examDate = row.examDate;
       entry.sourceData = row.sourceData;
@@ -268,7 +271,15 @@ exports.dashboard = async (req, res) => {
 };
 
 exports.listQuizzes = async (req, res) => {
-  const quizzes = await Quiz.find({ createdBy: req.user._id }).sort('-createdAt');
+  const requestedType = String(req.query.type || 'all');
+  const selectedType = EXAM_TYPES.includes(requestedType) ? requestedType : 'all';
+  const quizFilter = { createdBy: req.user._id };
+  if (selectedType !== 'all') quizFilter.examType = selectedType;
+
+  const [quizzes, allQuizzes] = await Promise.all([
+    Quiz.find(quizFilter).sort('-createdAt'),
+    Quiz.find({ createdBy: req.user._id }).select('status'),
+  ]);
   const quizIds = quizzes.map((quiz) => quiz._id);
   const enrollmentStats = quizIds.length
     ? await Enrollment.aggregate([
@@ -288,7 +299,16 @@ exports.listQuizzes = async (req, res) => {
     quiz.enrolledCount = stat?.enrolledCount || 0;
     quiz.completedCount = stat?.completedCount || 0;
   });
-  res.render('teacher/quizzes', { title: 'Manage Quizzes', quizzes });
+
+  res.render('teacher/quizzes', {
+    title: 'Manage Quizzes',
+    quizzes,
+    allQuizCount: allQuizzes.length,
+    allPublishedCount: allQuizzes.filter((quiz) => quiz.status === 'published').length,
+    allDraftCount: allQuizzes.filter((quiz) => quiz.status !== 'published').length,
+    selectedType,
+    query: req.query,
+  });
 };
 
 exports.showCreateQuiz = (req, res) =>
@@ -301,6 +321,7 @@ exports.showCreateQuiz = (req, res) =>
 
 exports.createQuiz = async (req, res) => {
   const { payload, errors } = buildQuizPayload(req.body);
+  const shouldCreateAnother = cleanText(req.body.saveAction) === 'create-another';
   if (errors.length) {
     req.flash('error', errors[0]);
     return res.redirect('/teacher/quizzes/new');
@@ -344,11 +365,17 @@ exports.createQuiz = async (req, res) => {
     const skippedMessage = skippedRosterRows
       ? ` ${skippedRosterRows} row${skippedRosterRows === 1 ? '' : 's'} skipped for other exams.`
       : '';
-    req.flash('success', `Quiz created and ${rosterResult.importedCount} student sheet row${rosterResult.importedCount === 1 ? '' : 's'} imported.${skippedMessage} Add questions next.`);
+    req.flash(
+      'success',
+      `Quiz created and ${rosterResult.importedCount} student sheet row${rosterResult.importedCount === 1 ? '' : 's'} imported.${skippedMessage} ${
+        shouldCreateAnother ? 'Ready for the next quiz.' : 'Add questions next.'
+      }`
+    );
   } else {
-    req.flash('success', 'Quiz created. Add questions next.');
+    req.flash('success', shouldCreateAnother ? 'Quiz created. Ready for the next quiz.' : 'Quiz created. Add questions next.');
   }
 
+  if (shouldCreateAnother) return res.redirect('/teacher/quizzes/new');
   return res.redirect(`/teacher/quizzes/${quiz._id}/edit`);
 };
 

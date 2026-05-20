@@ -3,7 +3,7 @@
     <% const examTypeLabels = { quiz: 'Quiz', 'true-false': 'True/False', 'short-answer': 'Short Question', 'coding-test': 'Coding Exam' }; %>
     <thead><tr><th>Title</th><th>Type</th><th>Category</th><th>Enrolled</th><th>Marks</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
     <tbody>
-      <% if (quizzes.length === 0) { %><tr><td colspan="7" class="text-center text-muted py-4">No quizzes yet.</td></tr><% } %>
+      <% if (quizzes.length === 0) { %><tr><td colspan="7" class="text-center text-muted py-4"><%= typeof emptyText !== 'undefined' ? emptyText : 'No quizzes yet.' %></td></tr><% } %>
       <% quizzes.forEach((quiz) => { %>
         <tr>
           <td>

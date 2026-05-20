@@ -32,7 +32,7 @@
           </div>
           <div class="exam-security-note__status">
             <span id="securityTrialsText">3 chances left</span>
-            <span id="securityRecoveryText" class="d-none">Return window: 1:00</span>
+            <span id="securityRecoveryText" class="d-none">Return window: 0:15</span>
           </div>
         </div>
         <p>
@@ -42,8 +42,8 @@
           the exam. Any incident after those 3 warnings will auto-submit the exam.
         </p>
         <p class="mb-0">
-          If you leave the exam tab or window, a 1 minute return window starts immediately. Come back to
-          this exam within that minute to continue. If the 1 minute limit is crossed, the exam is
+          If you leave the exam tab or window, a 15 second return window starts immediately. Come back to
+          this exam within that window to continue. If the 15 second limit is crossed, the exam is
           auto-submitted even if you still have warning chances left.
         </p>
         <p id="securityWarningText" class="exam-security-note__live d-none"></p>
@@ -58,7 +58,10 @@
       <input type="hidden" name="examRosterStudentId" value="<%= rosterAccess.studentId %>">
       <div class="alert alert-info small">
         <i class="fa-solid fa-id-card me-2"></i>
-        Verified student ID: <strong><%= rosterAccess.studentId %></strong>
+        Verified student: <strong><%= rosterAccess.studentName || rosterAccess.studentId %></strong>
+        <% if (rosterAccess.studentName) { %>
+          <span>(ID: <%= rosterAccess.studentId %>)</span>
+        <% } %>
       </div>
     <% } %>
     

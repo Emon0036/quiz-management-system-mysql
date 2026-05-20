@@ -57,7 +57,7 @@
           <div class="form-field">
             <label class="form-label" for="createRosterSheet">Student sheet CSV</label>
             <input id="createRosterSheet" class="form-control" type="file" name="rosterSheet" accept=".csv,.tsv,.txt">
-            <div class="form-text">Optional while creating. Export from Google Sheets as CSV with columns: Student ID, Exam Name, Date.</div>
+            <div class="form-text">Optional while creating. Export from Google Sheets as CSV with columns: Student ID, Student Name, Exam Name, Date.</div>
           </div>
         <% } %>
 
@@ -66,7 +66,7 @@
           <input id="quizCategory" class="form-control" name="category" placeholder="Category" value="<%= quiz.category || 'General Knowledge' %>" required>
         </div>
 
-        <div class="row g-3">
+        <div class="row g-3 quiz-settings-row">
           <div class="col-md-4">
             <label class="form-label" for="duration">Duration minutes</label>
             <input id="duration" class="form-control" type="number" name="duration" min="1" placeholder="Duration minutes" value="<%= quiz.duration || '' %>" required>
@@ -83,7 +83,22 @@
           </div>
         </div>
 
-        <button class="btn btn-primary" type="submit">Save Quiz</button>
+        <div class="toolbar">
+          <button class="btn btn-primary" type="submit" name="saveAction" value="save">
+            <%= quiz._id ? 'Update Quiz' : 'Save Quiz' %>
+          </button>
+          <% if (!quiz._id) { %>
+            <button class="btn btn-outline-primary" type="submit" name="saveAction" value="create-another">
+              <i class="fa-solid fa-plus"></i>
+              Save & Create Another
+            </button>
+          <% } else { %>
+            <a class="btn btn-outline-primary" href="<%= actionWithTab('/teacher/quizzes/new') %>">
+              <i class="fa-solid fa-plus"></i>
+              Create Another Quiz
+            </a>
+          <% } %>
+        </div>
       </form>
 
       <% if (quiz._id) { %>
@@ -102,7 +117,7 @@
             <div class="form-field">
               <label class="form-label" for="rosterSheet">Upload Google Sheet CSV</label>
               <input id="rosterSheet" class="form-control" type="file" name="rosterSheet" accept=".csv,.tsv,.txt" required>
-              <div class="form-text">Required columns: Student ID, Exam Name, Date.</div>
+              <div class="form-text">Use columns: Student ID, Student Name, Exam Name, Date.</div>
             </div>
             <div class="toolbar">
               <button class="btn btn-outline-primary" type="submit">
@@ -129,11 +144,8 @@
           <% const startsManualReview = lockedType === 'short-answer' || lockedType === 'coding-test'; %>
           <% const startsMultipleChoice = !lockedType; %>
           <form action="/teacher/quizzes/<%= quiz._id %>/questions" method="POST" class="vstack gap-3 modern-question-form">
-            <label class="form-label fw-semibold mb-1" for="questionTitle">Question Title</label>
-            <input class="form-control" name="questionTitle" id="questionTitle" type="text" placeholder="Enter a short title for this question" required>
-
-            <label class="form-label fw-semibold mb-1">Question to create</label>
-            <textarea class="form-control" name="questionText" rows="3" placeholder="Enter the question statement" required></textarea>
+            <label class="form-label fw-semibold mb-1" for="questionText">Question</label>
+            <textarea class="form-control" id="questionText" name="questionText" rows="3" placeholder="Enter the question" required></textarea>
             
             <label class="form-label fw-semibold mb-1" for="questionType">Question type</label>
             <select class="form-select question-type" name="type" id="questionType" required>

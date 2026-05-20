@@ -13,7 +13,7 @@ if (timer && quizForm && timerText) {
   const startedAt = Date.now();
   const originalTitle = document.title;
   const maxSecurityTrials = 3;
-  const recoverySeconds = 60;
+  const recoverySeconds = 15;
   const storageKey = `quiz-security:${quizForm.action || window.location.pathname}`;
   let remaining = totalSeconds;
   let alreadySubmitted = false;
@@ -313,7 +313,7 @@ if (timer && quizForm && timerText) {
       ? `${chancesLeft} ${pluralizeChance(chancesLeft)} left.`
       : 'No warning chances remain. The next security incident will auto-submit the exam.';
 
-    setSecurityMessage(`You returned within the 1 minute window. ${remainingText}`, 'success');
+    setSecurityMessage(`You returned within the 15 second window. ${remainingText}`, 'success');
   }
 
   function checkRecoveryTimeout() {
@@ -344,7 +344,7 @@ if (timer && quizForm && timerText) {
     saveSecurityState();
     updateSecurityStatus();
 
-    setSecurityMessage('You left the exam tab or window. Return within 1 minute to continue, otherwise the exam will auto-submit.', 'danger');
+    setSecurityMessage('You left the exam tab or window. Return within 15 seconds to continue, otherwise the exam will auto-submit.', 'danger');
 
     clearInterval(recoveryInterval);
     recoveryInterval = setInterval(checkRecoveryTimeout, 1000);
@@ -392,7 +392,7 @@ if (timer && quizForm && timerText) {
     }
   }
 
-  // Tab visibility change - start a 1 minute return window when hidden
+  // Tab visibility change - start a 15 second return window when hidden
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && !alreadySubmitted) {
       startRecovery('tab_hidden');
@@ -404,7 +404,7 @@ if (timer && quizForm && timerText) {
     }
   });
 
-  // Window blur - start a 1 minute return window when the student switches apps/windows
+  // Window blur - start a 15 second return window when the student switches apps/windows
   window.addEventListener('blur', () => {
     if (!alreadySubmitted) {
       startRecovery('window_blur');

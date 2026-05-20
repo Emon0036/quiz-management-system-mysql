@@ -1085,6 +1085,7 @@ defineModel(
     teacher: { type: DataTypes.CHAR(24), allowNull: false },
     quiz: { type: DataTypes.CHAR(24), allowNull: false },
     studentId: { type: DataTypes.STRING(100), allowNull: false },
+    studentName: { type: DataTypes.STRING(150), allowNull: true },
     examName: { type: DataTypes.STRING(255), allowNull: false },
     examDate: { type: DataTypes.DATE, allowNull: true },
     attempts: { type: jsonColumn(), allowNull: true },

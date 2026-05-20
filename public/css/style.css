@@ -2305,6 +2305,16 @@ textarea.form-input {
   color: var(--muted);
 }
 
+.quiz-settings-row > [class*="col-"] {
+  display: grid;
+  grid-template-rows: 2.5rem auto;
+  align-items: start;
+}
+
+.quiz-settings-row .form-label {
+  line-height: 1.35;
+}
+
 .code-block,
 .code-editor,
 pre {
