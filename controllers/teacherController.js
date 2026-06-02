@@ -8,8 +8,16 @@ const ExamRosterEntry = require('../models/ExamRosterEntry');
 const { finalizeQuizAttempt } = require('../utils/quizProgress');
 const { uploadQuizThumbnail, destroyQuizThumbnail } = require('../utils/quizThumbnailService');
 const {
+  buildTeacherProfilePayload,
+  teacherProfileMessage,
+} = require('../utils/profileFields');
+const {
+  buildRosterPreviewRows,
   formatRosterCsv,
   normalizeExamName,
+  normalizeRosterExportMode,
+  normalizeSection,
+  rosterEntryKey,
   normalizeStudentId,
   normalizeStudentName,
   parseRosterSheet,
@@ -178,7 +186,12 @@ async function recalculateQuizMarks(quizId) {
 }
 
 async function getRosterEntriesForQuiz(quizId) {
-  return ExamRosterEntry.find({ quiz: quizId }).sort('studentId');
+  const entries = await ExamRosterEntry.find({ quiz: quizId });
+  return entries.sort((left, right) => {
+    const sectionOrder = String(left.section || '').localeCompare(String(right.section || ''), undefined, { sensitivity: 'base' });
+    if (sectionOrder !== 0) return sectionOrder;
+    return String(left.studentId || '').localeCompare(String(right.studentId || ''), undefined, { numeric: true, sensitivity: 'base' });
+  });
 }
 
 function getUploadedFile(req, fieldName) {
@@ -191,21 +204,57 @@ function getRosterRowsForQuiz(buffer, quizTitle) {
   return rows.filter((row) => !row.examName || normalizeExamName(row.examName) === quizName);
 }
 
+function getRosterSections(entries) {
+  return Array.from(new Set((entries || []).map((entry) => normalizeSection(entry.section)).filter(Boolean)))
+    .sort((left, right) => left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' }));
+}
+
+function getRequestedSection(value) {
+  const section = normalizeSection(value);
+  return section && section !== 'ALL' ? section : 'all';
+}
+
+function filterRosterEntriesBySection(entries, section) {
+  const selectedSection = getRequestedSection(section);
+  if (selectedSection === 'all') return entries;
+  return entries.filter((entry) => normalizeSection(entry.section) === selectedSection);
+}
+
+function rosterModeLabel(mode) {
+  if (mode === 'best') return 'Best score only';
+  if (mode === 'last') return 'Last attempt only';
+  return 'Every attempt';
+}
+
 async function importRosterRowsForQuiz({ quiz, teacherId, rows }) {
   const existingEntries = await ExamRosterEntry.find({ quiz: quiz._id });
-  const existingByStudentId = new Map(existingEntries.map((entry) => [entry.studentId, entry]));
+  const existingByStudentId = new Map(existingEntries.map((entry) => [rosterEntryKey(entry.studentId, entry.section), entry]));
+  const existingByPlainStudentId = existingEntries.reduce((map, entry) => {
+    const studentId = normalizeStudentId(entry.studentId);
+    if (!map.has(studentId)) map.set(studentId, []);
+    map.get(studentId).push(entry);
+    return map;
+  }, new Map());
   const uploadedStudentIds = new Set();
   let importedCount = 0;
 
   for (const row of rows) {
     const studentId = normalizeStudentId(row.studentId);
-    uploadedStudentIds.add(studentId);
-    let entry = existingByStudentId.get(studentId);
+    const section = normalizeSection(row.section);
+    const entryKey = rosterEntryKey(studentId, section);
+    uploadedStudentIds.add(entryKey);
+    let entry = existingByStudentId.get(entryKey);
+    if (!entry && section) {
+      const sameStudentEntries = existingByPlainStudentId.get(studentId) || [];
+      const unsectionedEntry = sameStudentEntries.find((item) => !normalizeSection(item.section));
+      if (unsectionedEntry) entry = unsectionedEntry;
+    }
 
     if (!entry) {
       entry = await ExamRosterEntry.create({
         teacher: teacherId,
         quiz: quiz._id,
+        section,
         studentId,
         studentName: normalizeStudentName(row.studentName),
         examName: row.examName || quiz.title,
@@ -215,6 +264,7 @@ async function importRosterRowsForQuiz({ quiz, teacherId, rows }) {
       });
     } else {
       entry.teacher = teacherId;
+      entry.section = section;
       entry.studentName = normalizeStudentName(row.studentName) || entry.studentName || '';
       entry.examName = row.examName || quiz.title;
       entry.examDate = row.examDate;
@@ -225,13 +275,63 @@ async function importRosterRowsForQuiz({ quiz, teacherId, rows }) {
     importedCount += 1;
   }
 
-  const staleEntries = existingEntries.filter((entry) => !uploadedStudentIds.has(entry.studentId));
+  const staleEntries = existingEntries.filter((entry) => !uploadedStudentIds.has(rosterEntryKey(entry.studentId, entry.section)));
   for (const entry of staleEntries) {
     await ExamRosterEntry.deleteOne({ _id: entry._id });
   }
 
   return { importedCount, removedCount: staleEntries.length };
 }
+
+async function getTeacherProfileStats(teacherId) {
+  const quizzes = await Quiz.find({ createdBy: teacherId }).sort('-createdAt');
+  const quizIds = quizzes.map((quiz) => quiz._id);
+  const [totalAttempts, totalEnrollments, pendingReviews] = await Promise.all([
+    quizIds.length ? Attempt.countDocuments({ quiz: { $in: quizIds } }) : 0,
+    quizIds.length ? Enrollment.countDocuments({ quiz: { $in: quizIds } }) : 0,
+    quizIds.length ? Attempt.countDocuments({ quiz: { $in: quizIds }, status: 'pending-review' }) : 0,
+  ]);
+
+  return {
+    quizzes,
+    stats: {
+      totalQuizzes: quizzes.length,
+      publishedQuizzes: quizzes.filter((quiz) => quiz.status === 'published').length,
+      draftQuizzes: quizzes.filter((quiz) => quiz.status !== 'published').length,
+      totalAttempts,
+      totalEnrollments,
+      pendingReviews,
+    },
+  };
+}
+
+exports.profile = async (req, res) => {
+  const profileData = await getTeacherProfileStats(req.user._id);
+  return res.render('teacher/profile', {
+    title: 'Teacher Profile',
+    ...profileData,
+  });
+};
+
+exports.editProfile = async (req, res) => {
+  return res.render('teacher/profile-edit', {
+    title: 'Edit Teacher Profile',
+  });
+};
+
+exports.updateProfile = async (req, res) => {
+  const payload = buildTeacherProfilePayload(req.body);
+  const message = teacherProfileMessage(payload);
+  if (message) {
+    req.flash('error', message);
+    return res.redirect('/teacher/profile/edit');
+  }
+
+  Object.assign(req.user, payload);
+  await req.user.save();
+  req.flash('success', 'Teacher profile updated successfully.');
+  return res.redirect('/teacher/profile');
+};
 
 exports.dashboard = async (req, res) => {
   const quizzes = await Quiz.find({ createdBy: req.user._id }).sort('-createdAt');
@@ -386,11 +486,13 @@ exports.showEditQuiz = async (req, res) => {
     return res.redirect('/teacher/quizzes');
   }
   const rosterEntries = await getRosterEntriesForQuiz(quiz._id);
+  const rosterSections = getRosterSections(rosterEntries);
   return res.render('teacher/quiz-form', {
     title: 'Edit Quiz',
     quiz,
     questions: quiz.questions,
     rosterEntries,
+    rosterSections,
     action: `/teacher/quizzes/${quiz._id}?_method=PUT`,
   });
 };
@@ -489,8 +591,34 @@ exports.uploadRoster = async (req, res) => {
   const skippedMessage = skippedCount
     ? `, ${skippedCount} row${skippedCount === 1 ? '' : 's'} skipped for other exams`
     : '';
-  req.flash('success', `Student sheet imported: ${rosterResult.importedCount} row${rosterResult.importedCount === 1 ? '' : 's'} ready${staleMessage}${skippedMessage}.`);
+  req.flash('success', `Student sheet imported: ${rosterResult.importedCount} row${rosterResult.importedCount === 1 ? '' : 's'} ready${staleMessage}${skippedMessage}. Sections are available for preview and download.`);
   return res.redirect(`/teacher/quizzes/${quiz._id}/edit`);
+};
+
+exports.previewRoster = async (req, res) => {
+  const quiz = await Quiz.findOne({ _id: req.params.quizId, createdBy: req.user._id });
+  if (!quiz) {
+    req.flash('error', 'Quiz not found.');
+    return res.redirect('/teacher/quizzes');
+  }
+
+  const mode = normalizeRosterExportMode(req.query.mode);
+  const selectedSection = getRequestedSection(req.query.section);
+  const allEntries = await getRosterEntriesForQuiz(quiz._id);
+  const rosterSections = getRosterSections(allEntries);
+  const entries = filterRosterEntriesBySection(allEntries, selectedSection);
+  const preview = buildRosterPreviewRows(entries, quiz, { mode });
+
+  return res.render('teacher/roster-preview', {
+    title: 'Student Sheet Preview',
+    quiz,
+    entries,
+    preview,
+    mode,
+    modeLabel: rosterModeLabel(mode),
+    selectedSection,
+    rosterSections,
+  });
 };
 
 exports.downloadRoster = async (req, res) => {
@@ -500,9 +628,13 @@ exports.downloadRoster = async (req, res) => {
     return res.redirect('/teacher/quizzes');
   }
 
-  const entries = await getRosterEntriesForQuiz(quiz._id);
-  const csv = formatRosterCsv(entries, quiz);
-  const filename = `${quiz.title || 'exam'}-student-sheet.csv`
+  const mode = normalizeRosterExportMode(req.query.mode);
+  const selectedSection = getRequestedSection(req.query.section);
+  const allEntries = await getRosterEntriesForQuiz(quiz._id);
+  const entries = filterRosterEntriesBySection(allEntries, selectedSection);
+  const csv = formatRosterCsv(entries, quiz, { mode });
+  const sectionPart = selectedSection === 'all' ? 'all-sections' : `section-${selectedSection}`;
+  const filename = `${quiz.title || 'exam'}-${sectionPart}-${mode}-student-sheet.csv`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');

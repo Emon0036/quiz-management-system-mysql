@@ -242,3 +242,13 @@
   if (addQuizTestCaseButton) addQuizTestCaseButton.addEventListener('click', addTestCase);
   applyQuestionMode();
 })();
+
+(function initTeacherSearchFilter() {
+  const teacherSearch = document.querySelector('[data-teacher-search]');
+  const teacherSelect = document.querySelector('[data-teacher-select]');
+  if (!teacherSearch || !teacherSelect) return;
+
+  teacherSearch.addEventListener('input', () => {
+    teacherSelect.value = 'all';
+  });
+})();

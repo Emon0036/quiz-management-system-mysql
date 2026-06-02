@@ -17,11 +17,15 @@ const rosterUpload = multer({
 
 router.use(ensureTeacher);
 router.get('/dashboard', asyncHandler(teacherController.dashboard));
+router.get('/profile', asyncHandler(teacherController.profile));
+router.get('/profile/edit', asyncHandler(teacherController.editProfile));
+router.patch('/profile', asyncHandler(teacherController.updateProfile));
 router.get('/quizzes', asyncHandler(teacherController.listQuizzes));
 router.get('/quizzes/new', teacherController.showCreateQuiz);
 router.post('/quizzes', quizThumbnailUpload, asyncHandler(teacherController.createQuiz));
 router.get('/reviews', asyncHandler(teacherController.reviews));
 router.post('/quizzes/:quizId/roster/upload', rosterUpload.single('rosterSheet'), asyncHandler(teacherController.uploadRoster));
+router.get('/quizzes/:quizId/roster/preview', asyncHandler(teacherController.previewRoster));
 router.get('/quizzes/:quizId/roster/download', asyncHandler(teacherController.downloadRoster));
 router.get('/quizzes/:quizId/edit', asyncHandler(teacherController.showEditQuiz));
 router.put('/quizzes/:quizId', quizThumbnailUpload, asyncHandler(teacherController.updateQuiz));

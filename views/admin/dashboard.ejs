@@ -209,6 +209,8 @@
               <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Department</th>
+                <th>Institution</th>
                 <th>Requested</th>
                 <th>Action</th>
               </tr>
@@ -218,6 +220,18 @@
                 <tr>
                   <td><%= teacher.name %></td>
                   <td><%= teacher.email %></td>
+                  <td>
+                    <strong><%= teacher.department || 'Not provided' %></strong>
+                    <% if (teacher.designation) { %>
+                      <div class="small text-muted"><%= teacher.designation %></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <%= teacher.institution || 'Not provided' %>
+                    <% if (teacher.phone) { %>
+                      <div class="small text-muted"><i class="fas fa-phone me-1"></i><%= teacher.phone %></div>
+                    <% } %>
+                  </td>
                   <td><%= teacher.createdAt.toLocaleDateString() %></td>
                   <td>
                     <div class="action-stack">

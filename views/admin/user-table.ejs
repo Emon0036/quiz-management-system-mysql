@@ -7,6 +7,7 @@
         <tr>
           <th>Name</th>
           <th>Email</th>
+          <th>Details</th>
           <th>Status</th>
           <th>Action</th>
         </tr>
@@ -25,6 +26,14 @@
           <tr>
             <td><%= user.name %></td>
             <td><%= user.email %></td>
+            <td>
+              <% if (user.role === 'teacher') { %>
+                <strong><%= user.department || 'No department' %></strong>
+                <div class="small text-muted"><%= user.institution || user.designation || 'Profile incomplete' %></div>
+              <% } else { %>
+                <span class="text-muted"><%= user.studentId || user.department || 'Student profile' %></span>
+              <% } %>
+            </td>
             <td>
               <div class="status-pill-row">
                 <span class="status-pill <%= accountClass %>"><%= accountValue %></span>

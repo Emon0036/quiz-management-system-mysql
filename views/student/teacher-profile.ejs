@@ -1,0 +1,125 @@
+<% layout('layouts/main') %>
+<%
+  const teacherStats = {
+    publishedQuizzes: 0,
+    totalAttempts: 0,
+    totalEnrollments: 0,
+    ...(stats || {})
+  };
+%>
+
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <section class="profile-hero">
+      <div class="profile-hero__main">
+        <span class="profile-avatar profile-avatar--xl"><%= teacher.name.charAt(0).toUpperCase() %></span>
+        <div>
+          <span class="eyebrow">Teacher Profile</span>
+          <h1><%= teacher.name %></h1>
+          <p><%= teacher.bio || 'Approved teacher on QuizMaster.' %></p>
+          <div class="profile-chip-row">
+            <span class="status-pill approved"><i class="fas fa-building-columns"></i> <%= teacher.department || 'Department not added' %></span>
+            <span class="status-pill pending"><i class="fas fa-briefcase"></i> <%= teacher.designation || 'Teacher' %></span>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <a href="/enrollments/browse?teacher=<%= teacher._id %>" class="btn btn-primary">
+          <i class="fas fa-book-open"></i>
+          View Exams
+        </a>
+      </div>
+    </section>
+
+    <section class="metric-grid dashboard-metric-grid">
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Published</span>
+            <strong class="metric-card__value"><%= teacherStats.publishedQuizzes %></strong>
+            <small class="metric-card__meta">Available exams</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-bullhorn"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Enrollments</span>
+            <strong class="metric-card__value"><%= teacherStats.totalEnrollments %></strong>
+            <small class="metric-card__meta">Student exam joins</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-user-graduate"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Attempts</span>
+            <strong class="metric-card__value"><%= teacherStats.totalAttempts %></strong>
+            <small class="metric-card__meta">Submissions recorded</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-file-signature"></i></span>
+        </div>
+      </article>
+    </section>
+
+    <section class="dashboard-layer dashboard-layer-grid">
+      <article class="form-panel">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Information</span>
+            <h2>Teacher details</h2>
+          </div>
+        </div>
+        <div class="profile-detail-grid">
+          <div><span>Email</span><strong><%= teacher.email %></strong></div>
+          <div><span>Institution</span><strong><%= teacher.institution || '-' %></strong></div>
+          <div><span>Department</span><strong><%= teacher.department || '-' %></strong></div>
+          <div><span>Designation</span><strong><%= teacher.designation || '-' %></strong></div>
+          <div><span>Office</span><strong><%= teacher.officeLocation || '-' %></strong></div>
+          <div><span>Office Hours</span><strong><%= teacher.officeHours || '-' %></strong></div>
+        </div>
+      </article>
+
+      <article class="form-panel">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Expertise</span>
+            <h2>Teaching focus</h2>
+          </div>
+        </div>
+        <p class="profile-long-copy"><%= teacher.expertise || 'No expertise added yet.' %></p>
+      </article>
+    </section>
+
+    <section class="table-card table-shell">
+      <div class="panel-header">
+        <div class="panel-header__copy">
+          <span class="eyebrow">Published Exams</span>
+          <h2>Exam library</h2>
+        </div>
+      </div>
+
+      <% if (!quizzes.length) { %>
+        <div class="empty-state">No published exams right now.</div>
+      <% } else { %>
+        <div class="action-grid action-grid--compact">
+          <% quizzes.slice(0, 6).forEach((quiz) => { %>
+            <a href="/enrollments/browse?teacher=<%= teacher._id %>&category=<%= encodeURIComponent(quiz.category || 'all') %>" class="action-card">
+              <div class="action-card__top">
+                <div>
+                  <span class="status-pill approved"><%= quiz.difficulty %></span>
+                  <h3 class="mt-3"><%= quiz.title %></h3>
+                  <p><%= quiz.category || 'General' %></p>
+                </div>
+                <span class="action-card__count"><%= quiz.totalMarks || 0 %></span>
+              </div>
+              <span class="action-card__footer">Open catalog <i class="fas fa-arrow-right"></i></span>
+            </a>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </div>
+</section>

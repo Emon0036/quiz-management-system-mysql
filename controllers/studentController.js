@@ -6,9 +6,17 @@ const Leaderboard = require('../models/Leaderboard');
 const Enrollment = require('../models/Enrollment');
 const Progress = require('../models/Progress');
 const ExamRosterEntry = require('../models/ExamRosterEntry');
+const GlobalLeaderboard = require('../models/GlobalLeaderboard');
+const User = require('../models/User');
 const { finalizeQuizAttempt } = require('../utils/quizProgress');
 const {
+  buildStudentProfilePayload,
+  studentProfileMessage,
+} = require('../utils/profileFields');
+const {
   findRosterEntryForQuiz,
+  findRosterEntryForQuizByStudent,
+  normalizeSection,
   normalizeStudentId,
   normalizeStudentName,
   recordRosterAttempt,
@@ -51,18 +59,237 @@ function saveRosterAccess(req, quizId, entry) {
     entryId: String(entry._id),
     studentId: entry.studentId,
     studentName: entry.studentName || '',
+    section: entry.section || '',
+    studentUserId: String(entry.student || req.user?._id || req.user?.id || ''),
     verifiedAt: Date.now(),
   };
 }
 
+function getCurrentUserId(req) {
+  return String(req.user?._id || req.user?.id || '');
+}
+
+async function claimRosterEntryForStudent(req, entry) {
+  const userId = getCurrentUserId(req);
+  if (!entry || !userId) return entry;
+
+  let shouldSave = false;
+  if (!entry.student) {
+    entry.student = userId;
+    shouldSave = true;
+  }
+
+  if (!entry.studentName && req.user?.name) {
+    entry.studentName = normalizeStudentName(req.user.name);
+    shouldSave = true;
+  }
+
+  if (shouldSave) await entry.save();
+  return entry;
+}
+
 async function getVerifiedRosterEntry(req, quizId) {
+  const userId = getCurrentUserId(req);
+  if (!userId) return null;
+
+  const accountVerifiedEntry = await findRosterEntryForQuizByStudent(quizId, userId);
+  if (accountVerifiedEntry) {
+    saveRosterAccess(req, quizId, accountVerifiedEntry);
+    return accountVerifiedEntry;
+  }
+
   const access = getStoredRosterAccess(req, quizId);
   if (!access?.studentId) return null;
 
-  const entry = await findRosterEntryForQuiz(quizId, access.studentId);
+  const entry = await findRosterEntryForQuiz(quizId, access.studentId, access.section);
   if (!entry || String(entry._id) !== String(access.entryId)) return null;
+  if (entry.student && String(entry.student) !== userId) return null;
+
+  await claimRosterEntryForStudent(req, entry);
+  saveRosterAccess(req, quizId, entry);
   return entry;
 }
+
+async function getRosterSectionsForQuiz(quizId) {
+  const entries = await ExamRosterEntry.find({ quiz: quizId });
+  return Array.from(new Set(entries.map((entry) => normalizeSection(entry.section)).filter(Boolean)))
+    .sort((left, right) => left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' }));
+}
+
+function defaultProgress() {
+  return {
+    totalPoints: 0,
+    averageScore: 0,
+    streak: 0,
+    totalQuizzes: 0,
+    completedQuizzes: 0,
+    inProgressQuizzes: 0,
+    totalAttempts: 0,
+    passedQuizzes: 0,
+    failedQuizzes: 0,
+    badges: [],
+    quizzesByCategory: [],
+  };
+}
+
+function isFinalizedAttempt(attempt) {
+  return attempt && attempt.status !== 'pending-review';
+}
+
+async function calculateStudentRank(leaderboard) {
+  const hasPosition = Number(leaderboard?.totalPoints || 0) > 0 || Number(leaderboard?.quizzesCompleted || 0) > 0;
+  if (!hasPosition) return null;
+  if (Number(leaderboard.rank || 0) > 0) return Number(leaderboard.rank);
+
+  const strongerCount = await GlobalLeaderboard.countDocuments({
+    $or: [
+      { totalPoints: { $gt: Number(leaderboard.totalPoints || 0) } },
+      {
+        totalPoints: Number(leaderboard.totalPoints || 0),
+        averageScore: { $gt: Number(leaderboard.averageScore || 0) },
+      },
+    ],
+  });
+  return strongerCount + 1;
+}
+
+function buildStudentAchievements({ progress, attempts, rank, leaderboard }) {
+  const finalizedAttempts = attempts.filter(isFinalizedAttempt);
+  const bestAttempt = finalizedAttempts
+    .slice()
+    .sort((left, right) => Number(right.percentage || 0) - Number(left.percentage || 0))[0] || null;
+
+  const achievements = [
+    {
+      icon: 'fa-flag-checkered',
+      title: 'First step',
+      detail: 'Enrolled in an exam',
+      earned: Number(progress.totalQuizzes || 0) > 0,
+    },
+    {
+      icon: 'fa-file-signature',
+      title: 'Attempt maker',
+      detail: `${attempts.length} submitted attempt${attempts.length === 1 ? '' : 's'}`,
+      earned: attempts.length > 0,
+    },
+    {
+      icon: 'fa-bullseye',
+      title: 'Sharp score',
+      detail: bestAttempt ? `Best result ${bestAttempt.percentage}%` : 'No finalized score yet',
+      earned: Number(bestAttempt?.percentage || 0) >= 80,
+    },
+    {
+      icon: 'fa-ranking-star',
+      title: 'Leaderboard position',
+      detail: rank ? `Global rank #${rank}` : 'Earn points to enter ranking',
+      earned: Boolean(rank && rank <= 10),
+    },
+    {
+      icon: 'fa-fire',
+      title: 'Learning streak',
+      detail: `${progress.streak || 0} activity streak`,
+      earned: Number(progress.streak || 0) >= 3,
+    },
+    {
+      icon: 'fa-medal',
+      title: 'Badge progress',
+      detail: `${leaderboard?.badge && leaderboard.badge !== 'none' ? leaderboard.badge : 'No'} global badge`,
+      earned: Boolean(leaderboard?.badge && leaderboard.badge !== 'none'),
+    },
+  ];
+
+  return achievements;
+}
+
+async function buildTeacherPublicProfile(teacherId) {
+  const teacher = await User.findOne({
+    _id: teacherId,
+    role: 'teacher',
+    teacherStatus: 'approved',
+    accountStatus: 'active',
+  });
+  if (!teacher) return null;
+
+  const quizzes = await Quiz.find({ createdBy: teacher._id, status: 'published' }).sort('-createdAt');
+  const quizIds = quizzes.map((quiz) => quiz._id);
+  const [totalAttempts, totalEnrollments] = await Promise.all([
+    quizIds.length ? Attempt.countDocuments({ quiz: { $in: quizIds } }) : 0,
+    quizIds.length ? Enrollment.countDocuments({ quiz: { $in: quizIds } }) : 0,
+  ]);
+
+  return {
+    teacher,
+    quizzes,
+    stats: {
+      publishedQuizzes: quizzes.length,
+      totalAttempts,
+      totalEnrollments,
+    },
+  };
+}
+
+exports.profile = async (req, res) => {
+  const [progressDoc, leaderboardDoc, attempts, enrollments] = await Promise.all([
+    Progress.findOne({ student: req.user._id }),
+    GlobalLeaderboard.findOne({ student: req.user._id }),
+    Attempt.find({ student: req.user._id }).populate('quiz', 'title category').sort('-submittedAt'),
+    Enrollment.find({ student: req.user._id }).populate('quiz', 'title category'),
+  ]);
+
+  const progress = progressDoc || defaultProgress();
+  const leaderboard = leaderboardDoc || {
+    totalPoints: Number(progress.totalPoints || 0),
+    averageScore: Number(progress.averageScore || 0),
+    quizzesCompleted: Number(progress.completedQuizzes || 0),
+    badge: 'none',
+    streak: Number(progress.streak || 0),
+  };
+  const rank = await calculateStudentRank(leaderboard);
+  const achievements = buildStudentAchievements({ progress, attempts, rank, leaderboard });
+
+  return res.render('student/profile', {
+    title: 'Student Profile',
+    progress,
+    leaderboard,
+    rank,
+    achievements,
+    attempts,
+    enrollments,
+  });
+};
+
+exports.editProfile = async (req, res) => {
+  return res.render('student/profile-edit', {
+    title: 'Edit Student Profile',
+  });
+};
+
+exports.updateProfile = async (req, res) => {
+  const payload = buildStudentProfilePayload(req.body);
+  const message = studentProfileMessage(payload);
+  if (message) {
+    req.flash('error', message);
+    return res.redirect('/student/profile/edit');
+  }
+
+  Object.assign(req.user, payload);
+  await req.user.save();
+  req.flash('success', 'Profile updated successfully.');
+  return res.redirect('/student/profile');
+};
+
+exports.teacherProfile = async (req, res) => {
+  const profile = await buildTeacherPublicProfile(req.params.teacherId);
+  if (!profile) {
+    req.flash('error', 'Teacher profile is not available.');
+    return res.redirect('/enrollments/my-quizzes');
+  }
+
+  return res.render('student/teacher-profile', {
+    title: `${profile.teacher.name} Profile`,
+    ...profile,
+  });
+};
 
 exports.dashboard = async (req, res) => {
   const [recentAttempts, availableQuizCount, completedCount, enrollments, progress, pendingReviewCount] = await Promise.all([
@@ -132,15 +359,18 @@ exports.takeQuiz = async (req, res) => {
   if (rosterCount > 0) {
     const rosterEntry = await getVerifiedRosterEntry(req, quiz._id);
     if (!rosterEntry) {
+      const rosterSections = await getRosterSectionsForQuiz(quiz._id);
       return res.render('student/verify-exam-id', {
         title: 'Verify Student ID',
         quiz,
+        rosterSections,
       });
     }
 
     rosterAccess = {
       studentId: rosterEntry.studentId,
       studentName: rosterEntry.studentName || '',
+      section: rosterEntry.section || '',
       entryId: rosterEntry._id,
     };
   }
@@ -176,18 +406,34 @@ exports.verifyExamId = async (req, res) => {
     return res.redirect('/enrollments/my-quizzes');
   }
 
+  const rosterSections = await getRosterSectionsForQuiz(quiz._id);
+  const requiresSection = rosterSections.length > 0;
   const studentId = normalizeStudentId(req.body.studentId);
-  const rosterEntry = await findRosterEntryForQuiz(quiz._id, studentId);
-  if (!rosterEntry) {
-    req.flash('error', 'You are not under this teacher or check your ID.');
+  const section = normalizeSection(req.body.section);
+  if (requiresSection && !section) {
+    req.flash('error', 'Please enter your section.');
     return res.redirect(`/student/quizzes/${quiz._id}/take`);
   }
 
-  if (!rosterEntry.studentName && req.user?.name) {
-    rosterEntry.studentName = normalizeStudentName(req.user.name);
-    await rosterEntry.save();
+  const rosterEntry = await findRosterEntryForQuiz(quiz._id, studentId, requiresSection ? section : undefined);
+  if (!rosterEntry) {
+    req.flash('error', requiresSection ? 'Your Student ID and section did not match this exam sheet.' : 'You are not under this teacher or check your ID.');
+    return res.redirect(`/student/quizzes/${quiz._id}/take`);
   }
 
+  const userId = getCurrentUserId(req);
+  const accountVerifiedEntry = await findRosterEntryForQuizByStudent(quiz._id, userId);
+  if (accountVerifiedEntry && String(accountVerifiedEntry._id) !== String(rosterEntry._id)) {
+    req.flash('error', `This account is already verified for this exam with Student ID ${accountVerifiedEntry.studentId}${accountVerifiedEntry.section ? `, Section ${accountVerifiedEntry.section}` : ''}.`);
+    return res.redirect(`/student/quizzes/${quiz._id}/take`);
+  }
+
+  if (rosterEntry.student && String(rosterEntry.student) !== userId) {
+    req.flash('error', 'This Student ID has already been verified by another account.');
+    return res.redirect(`/student/quizzes/${quiz._id}/take`);
+  }
+
+  await claimRosterEntryForStudent(req, rosterEntry);
   saveRosterAccess(req, quiz._id, rosterEntry);
   req.flash('success', 'Student ID verified. You can start the exam now.');
   return res.redirect(`/student/quizzes/${quiz._id}/take`);
@@ -220,10 +466,21 @@ exports.submitQuiz = async (req, res) => {
   let rosterEntry = null;
   if (rosterCount > 0) {
     const submittedStudentId = normalizeStudentId(req.body.examRosterStudentId);
+    const submittedSection = normalizeSection(req.body.examRosterSection);
     rosterEntry = await getVerifiedRosterEntry(req, quiz._id);
 
-    if (!rosterEntry || rosterEntry.studentId !== submittedStudentId) {
-      req.flash('error', 'You are not under this teacher or check your ID.');
+    if (!rosterEntry) {
+      req.flash('error', 'Please verify your Student ID before starting this exam.');
+      return res.redirect(`/student/quizzes/${quiz._id}/take`);
+    }
+
+    if (submittedStudentId && rosterEntry.studentId !== submittedStudentId) {
+      req.flash('error', 'Your verified Student ID does not match this exam submission.');
+      return res.redirect(`/student/quizzes/${quiz._id}/take`);
+    }
+
+    if (submittedSection && normalizeSection(rosterEntry.section) !== submittedSection) {
+      req.flash('error', 'Your verified section does not match this exam submission.');
       return res.redirect(`/student/quizzes/${quiz._id}/take`);
     }
   }

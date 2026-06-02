@@ -44,6 +44,24 @@ async function ensureColumn(tableName, columnName, definition) {
 }
 
 async function ensureApplicationColumns() {
+  const userProfileColumns = [
+    ['department', { type: DataTypes.STRING(150), allowNull: false, defaultValue: '' }],
+    ['institution', { type: DataTypes.STRING(180), allowNull: false, defaultValue: '' }],
+    ['designation', { type: DataTypes.STRING(120), allowNull: false, defaultValue: '' }],
+    ['phone', { type: DataTypes.STRING(40), allowNull: false, defaultValue: '' }],
+    ['studentId', { type: DataTypes.STRING(80), allowNull: false, defaultValue: '' }],
+    ['section', { type: DataTypes.STRING(80), allowNull: false, defaultValue: '' }],
+    ['batch', { type: DataTypes.STRING(80), allowNull: false, defaultValue: '' }],
+    ['officeLocation', { type: DataTypes.STRING(150), allowNull: false, defaultValue: '' }],
+    ['officeHours', { type: DataTypes.STRING(120), allowNull: false, defaultValue: '' }],
+    ['expertise', { type: DataTypes.TEXT('long'), allowNull: true }],
+    ['bio', { type: DataTypes.TEXT('long'), allowNull: true }],
+  ];
+
+  for (const [columnName, definition] of userProfileColumns) {
+    await ensureColumn('users', columnName, definition);
+  }
+
   await ensureColumn('quizzes', 'maxAttempts', {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -58,9 +76,28 @@ async function ensureApplicationColumns() {
     type: DataTypes.STRING(150),
     allowNull: true,
   });
+  await ensureColumn('exam_roster_entries', 'student', {
+    type: DataTypes.CHAR(24),
+    allowNull: true,
+  });
+  await ensureColumn('exam_roster_entries', 'section', {
+    type: DataTypes.STRING(80),
+    allowNull: false,
+    defaultValue: '',
+  });
 
   await sequelize.query('UPDATE `quizzes` SET `maxAttempts` = 10 WHERE `maxAttempts` IS NULL OR `maxAttempts` < 1');
   await sequelize.query('UPDATE `attempts` SET `attemptNumber` = 1 WHERE `attemptNumber` IS NULL OR `attemptNumber` < 1');
+  await sequelize.query('UPDATE `exam_roster_entries` SET `section` = "" WHERE `section` IS NULL');
+  await sequelize.query('UPDATE `users` SET `department` = "" WHERE `department` IS NULL');
+  await sequelize.query('UPDATE `users` SET `institution` = "" WHERE `institution` IS NULL');
+  await sequelize.query('UPDATE `users` SET `designation` = "" WHERE `designation` IS NULL');
+  await sequelize.query('UPDATE `users` SET `phone` = "" WHERE `phone` IS NULL');
+  await sequelize.query('UPDATE `users` SET `studentId` = "" WHERE `studentId` IS NULL');
+  await sequelize.query('UPDATE `users` SET `section` = "" WHERE `section` IS NULL');
+  await sequelize.query('UPDATE `users` SET `batch` = "" WHERE `batch` IS NULL');
+  await sequelize.query('UPDATE `users` SET `officeLocation` = "" WHERE `officeLocation` IS NULL');
+  await sequelize.query('UPDATE `users` SET `officeHours` = "" WHERE `officeHours` IS NULL');
 }
 
 async function backfillAttemptNumbers() {

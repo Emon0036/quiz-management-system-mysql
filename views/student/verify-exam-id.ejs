@@ -5,11 +5,12 @@
       <div>
         <span class="eyebrow">Student verification</span>
         <h1><%= quiz.title %></h1>
-        <p>Enter the student ID your teacher included in the exam sheet before starting this attempt.</p>
+        <p>Enter the student ID and section your teacher included in the exam sheet before starting this attempt.</p>
       </div>
     </div>
 
     <form class="form-panel" action="/student/quizzes/<%= quiz._id %>/verify-id" method="POST">
+      <% const sections = (typeof rosterSections !== 'undefined' && rosterSections) ? rosterSections : []; %>
       <div class="form-field">
         <label class="form-label" for="studentId">Student ID</label>
         <input
@@ -21,6 +22,17 @@
           required
         >
       </div>
+      <% if (sections.length) { %>
+        <div class="form-field">
+          <label class="form-label" for="section">Section</label>
+          <select id="section" class="form-select" name="section" required>
+            <option value="">Choose section</option>
+            <% sections.forEach((section) => { %>
+              <option value="<%= section %>">Section <%= section %></option>
+            <% }) %>
+          </select>
+        </div>
+      <% } %>
       <div class="toolbar">
         <button class="btn btn-primary" type="submit">
           <i class="fa-solid fa-id-card"></i>

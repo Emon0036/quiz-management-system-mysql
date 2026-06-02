@@ -4,6 +4,11 @@ const validator = require('validator');
 const User = require('../models/User');
 const { dashboardPathFor } = require('../middleware/authMiddleware');
 const { saveTabUser, removeTabUser } = require('../middleware/tabSessionMiddleware');
+const {
+  buildTeacherProfilePayload,
+  cleanText,
+  teacherApplicationMessage,
+} = require('../utils/profileFields');
 
 function authPageOptions(title) {
   return {
@@ -20,6 +25,8 @@ exports.showTeacherPending = (req, res) => res.render('auth/teacher-pending', { 
 
 exports.register = async (req, res) => {
   const { name, email, password, confirmPassword } = req.body;
+  const requestedRole = String(req.body.role || 'student') === 'teacher' ? 'teacher' : 'student';
+  const teacherProfile = buildTeacherProfilePayload({ ...req.body, name });
 
   if (!name || !email || !password || !confirmPassword) {
     req.flash('error', 'Please fill in every required field.');
@@ -33,6 +40,13 @@ exports.register = async (req, res) => {
     req.flash('error', 'Passwords do not match.');
     return res.redirect('/auth/register');
   }
+  if (requestedRole === 'teacher') {
+    const teacherMessage = teacherApplicationMessage(teacherProfile);
+    if (teacherMessage) {
+      req.flash('error', teacherMessage);
+      return res.redirect('/auth/register');
+    }
+  }
 
   const existingUser = await User.findOne({ email: email.toLowerCase() });
   if (existingUser) {
@@ -40,23 +54,29 @@ exports.register = async (req, res) => {
     return res.redirect('/auth/register');
   }
 
-  // All registrations are students. Teachers are created by admins only.
   const newUser = await User.create({
-    name,
+    name: cleanText(name, 100),
     email,
     password,
-    role: 'student',
-    teacherStatus: 'none',
+    role: requestedRole,
+    teacherStatus: requestedRole === 'teacher' ? 'pending' : 'none',
+    ...(requestedRole === 'teacher' ? teacherProfile : {}),
   });
 
-  // Initialize progress and leaderboard for new student
-  const Progress = require('../models/Progress');
-  const GlobalLeaderboard = require('../models/GlobalLeaderboard');
-  
-  await Progress.create({ student: newUser._id });
-  await GlobalLeaderboard.create({ student: newUser._id });
+  if (requestedRole === 'student') {
+    const Progress = require('../models/Progress');
+    const GlobalLeaderboard = require('../models/GlobalLeaderboard');
 
-  req.flash('success', 'Account created successfully! Please log in.');
+    await Progress.create({ student: newUser._id });
+    await GlobalLeaderboard.create({ student: newUser._id });
+  }
+
+  req.flash(
+    'success',
+    requestedRole === 'teacher'
+      ? 'Teacher registration submitted. Please log in to check your approval status.'
+      : 'Account created successfully! Please log in.'
+  );
   return res.redirect('/auth/login');
 };
 
@@ -70,7 +90,7 @@ exports.login = async (req, res, next) => {
       return res.redirect(`/auth/login?tab=${encodeURIComponent(tabId)}`);
     }
 
-    req.login(user, (loginError) => {
+    req.login(user, { keepSessionInfo: true }, (loginError) => {
       if (loginError) return next(loginError);
       saveTabUser(req, user.id, tabId, user.role);
       req.flash('success', `Welcome back, ${req.user.name}.`);

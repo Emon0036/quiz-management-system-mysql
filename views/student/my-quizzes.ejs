@@ -85,7 +85,12 @@
                       <div>
                         <strong><%= enrollment.quiz.title %></strong>
                         <div class="small text-muted">
-                          <%= enrollment.quiz.duration %> min · <%= enrollment.quiz.totalMarks %> marks · Pass <%= enrollment.quiz.passingMarks %>% · <%= enrollment.quiz.createdBy?.name || 'Teacher' %>
+                          <%= enrollment.quiz.duration %> min &middot; <%= enrollment.quiz.totalMarks %> marks &middot; Pass <%= enrollment.quiz.passingMarks %>% &middot;
+                          <% if (enrollment.quiz.createdBy?._id) { %>
+                            <a class="teacher-profile-link" href="/student/teachers/<%= enrollment.quiz.createdBy._id %>/profile"><%= enrollment.quiz.createdBy.name || 'Teacher' %></a>
+                          <% } else { %>
+                            <%= enrollment.quiz.createdBy?.name || 'Teacher' %>
+                          <% } %>
                           <span class="d-block"><%= attemptLimit %> attempts/purchase</span>
                         </div>
                       </div>
@@ -125,6 +130,16 @@
                       <% if (enrollment.bestAttemptId) { %>
                         <a class="btn btn-sm btn-outline-secondary" href="/student/results/<%= enrollment.bestAttemptId._id || enrollment.bestAttemptId %>">View Result</a>
                       <% } %>
+                      <form
+                        action="/enrollments/<%= enrollment.quiz._id %>/enroll?_method=DELETE"
+                        method="POST"
+                        onsubmit="return confirm('Remove this exam from My Exams? Your attempt history will stay available.');"
+                      >
+                        <button class="btn btn-sm btn-outline-danger" type="submit">
+                          <i class="fa-solid fa-trash-can"></i>
+                          Delete
+                        </button>
+                      </form>
                     </div>
                   </td>
                 </tr>

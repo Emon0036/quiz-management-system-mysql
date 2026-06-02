@@ -1,0 +1,87 @@
+<% layout('layouts/main') %>
+<%
+  const actionWithTab = (url) => {
+    if (!currentTabId) return url;
+    return `${url}${url.includes('?') ? '&' : '?'}tab=${encodeURIComponent(currentTabId)}`;
+  };
+  const currentSection = selectedSection || 'all';
+%>
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Student Sheet Preview</span>
+        <h1><%= quiz.title %></h1>
+        <p>Preview the section-wise spreadsheet before downloading it.</p>
+      </div>
+      <div class="toolbar">
+        <a class="btn btn-outline-secondary" href="<%= actionWithTab(`/teacher/quizzes/${quiz._id}/edit`) %>">Back to Quiz</a>
+      </div>
+    </div>
+
+    <form class="filter-bar" method="GET" action="<%= actionWithTab(`/teacher/quizzes/${quiz._id}/roster/preview`) %>">
+      <select class="form-select" name="section">
+        <option value="all" <%= currentSection === 'all' ? 'selected' : '' %>>All sections</option>
+        <% (rosterSections || []).forEach((section) => { %>
+          <option value="<%= section %>" <%= currentSection === section ? 'selected' : '' %>>Section <%= section %></option>
+        <% }) %>
+      </select>
+      <select class="form-select" name="mode">
+        <option value="all" <%= mode === 'all' ? 'selected' : '' %>>Every attempt score</option>
+        <option value="best" <%= mode === 'best' ? 'selected' : '' %>>Best score only</option>
+        <option value="last" <%= mode === 'last' ? 'selected' : '' %>>Last attempt score</option>
+      </select>
+      <button class="btn btn-outline-primary" type="submit">
+        <i class="fa-solid fa-eye"></i>
+        Preview
+      </button>
+      <button
+        class="btn btn-primary"
+        type="submit"
+        formaction="<%= actionWithTab(`/teacher/quizzes/${quiz._id}/roster/download`) %>"
+      >
+        <i class="fa-solid fa-file-arrow-down"></i>
+        Download
+      </button>
+    </form>
+
+    <section class="table-card table-shell">
+      <div class="panel-header">
+        <div class="panel-header__copy">
+          <span class="eyebrow"><%= currentSection === 'all' ? 'All sections' : `Section ${currentSection}` %></span>
+          <h2><%= modeLabel %></h2>
+          <p><%= entries.length %> student row<%= entries.length === 1 ? '' : 's' %> in this preview.</p>
+        </div>
+        <span class="status-pill approved"><%= preview.rows.length %> rows</span>
+      </div>
+
+      <% if (!preview.rows.length) { %>
+        <div class="empty-state">
+          <h3>No rows for this selection</h3>
+          <p>Try another section or upload a roster sheet with matching section data.</p>
+        </div>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <% preview.headers.forEach((header) => { %>
+                  <th><%= header %></th>
+                <% }) %>
+              </tr>
+            </thead>
+            <tbody>
+              <% preview.rows.forEach((row) => { %>
+                <tr>
+                  <% row.forEach((cell) => { %>
+                    <td><%= cell || '-' %></td>
+                  <% }) %>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+  </div>
+</section>

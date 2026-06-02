@@ -305,6 +305,240 @@ html.theme-dark .app-toast__dismiss:hover {
   color: var(--brand-contrast);
 }
 
+.app-bootstrap-toast {
+  width: min(420px, calc(100vw - 2rem));
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.app-bootstrap-toast__icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.auth-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.auth-role-option {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.auth-role-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-role-option span {
+  display: inline-grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 12px;
+  color: var(--brand);
+  background: rgba(14, 92, 139, 0.1);
+}
+
+.auth-role-option strong {
+  color: var(--text-strong);
+}
+
+.auth-role-option small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.auth-role-option.is-active {
+  border-color: rgba(28, 155, 143, 0.55);
+  box-shadow: 0 14px 30px rgba(28, 155, 143, 0.16);
+  transform: translateY(-1px);
+}
+
+.auth-teacher-fields {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(14, 92, 139, 0.05);
+}
+
+.profile-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.profile-hero__main {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-hero h1 {
+  margin: 0.15rem 0 0.35rem;
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-weight: 900;
+  color: var(--text-strong);
+}
+
+.profile-hero p {
+  margin: 0;
+  max-width: 56rem;
+  color: var(--muted);
+}
+
+.profile-avatar--xl {
+  width: 5rem;
+  height: 5rem;
+  font-size: 2rem;
+}
+
+.profile-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.profile-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.profile-detail-grid--compact {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.profile-detail-grid div {
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.profile-detail-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.profile-detail-grid strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+.achievement-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.achievement-card {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.achievement-card > span {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 12px;
+  background: rgba(97, 125, 150, 0.12);
+}
+
+.achievement-card strong,
+.achievement-card small {
+  display: block;
+}
+
+.achievement-card.is-earned {
+  color: var(--text-strong);
+  border-color: rgba(28, 155, 143, 0.34);
+  background: rgba(28, 155, 143, 0.08);
+}
+
+.achievement-card.is-earned > span {
+  color: #0f766e;
+  background: rgba(28, 155, 143, 0.14);
+}
+
+.profile-long-copy {
+  color: var(--muted);
+  white-space: pre-line;
+}
+
+.teacher-profile-link {
+  color: var(--brand);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.teacher-profile-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+html.theme-dark .profile-detail-grid div,
+html.theme-dark .achievement-card,
+html.theme-dark .auth-teacher-fields,
+html.theme-dark .auth-role-option {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+@media (max-width: 768px) {
+  .auth-role-grid,
+  .profile-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-hero,
+  .profile-hero__main {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profile-avatar--xl {
+    width: 4.25rem;
+    height: 4.25rem;
+    font-size: 1.7rem;
+  }
+}
+
 .page-shell,
 section.container,
 section.container-fluid {
@@ -1766,6 +2000,42 @@ textarea.form-input {
   display: grid;
   gap: 0.85rem;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.search-control {
+  position: relative;
+  min-width: 0;
+}
+
+.search-control i {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.search-control .form-control {
+  padding-left: 2.65rem;
+}
+
+.teacher-filter-row {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.teacher-chip-group {
+  max-height: 11rem;
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.filter-summary {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.9rem;
 }
 
 .filter-chip {

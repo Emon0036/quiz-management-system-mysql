@@ -1,0 +1,144 @@
+<% layout('layouts/main') %>
+<%
+  const teacherStats = {
+    totalQuizzes: 0,
+    publishedQuizzes: 0,
+    draftQuizzes: 0,
+    totalAttempts: 0,
+    totalEnrollments: 0,
+    pendingReviews: 0,
+    ...(stats || {})
+  };
+  const recentQuizzes = (quizzes || []).slice(0, 5);
+%>
+
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <section class="profile-hero">
+      <div class="profile-hero__main">
+        <span class="profile-avatar profile-avatar--xl"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+        <div>
+          <span class="eyebrow">Teacher Profile</span>
+          <h1><%= currentUser.name %></h1>
+          <p><%= currentUser.bio || 'Teacher profile ready.' %></p>
+          <div class="profile-chip-row">
+            <span class="status-pill approved"><i class="fas fa-circle-check"></i> <%= currentUser.teacherStatus %></span>
+            <span class="status-pill pending"><i class="fas fa-building-columns"></i> <%= currentUser.department || 'No department' %></span>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <a href="/teacher/profile/edit" class="btn btn-primary">
+          <i class="fas fa-pen"></i>
+          Edit Profile
+        </a>
+      </div>
+    </section>
+
+    <section class="metric-grid dashboard-metric-grid">
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Published</span>
+            <strong class="metric-card__value"><%= teacherStats.publishedQuizzes %></strong>
+            <small class="metric-card__meta"><%= teacherStats.totalQuizzes %> total quizzes</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-bullhorn"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Students</span>
+            <strong class="metric-card__value"><%= teacherStats.totalEnrollments %></strong>
+            <small class="metric-card__meta">Enrollments across quizzes</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-user-graduate"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Attempts</span>
+            <strong class="metric-card__value"><%= teacherStats.totalAttempts %></strong>
+            <small class="metric-card__meta">Student submissions</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-file-signature"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Review Queue</span>
+            <strong class="metric-card__value"><%= teacherStats.pendingReviews %></strong>
+            <small class="metric-card__meta">Pending manual reviews</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-clipboard-check"></i></span>
+        </div>
+      </article>
+    </section>
+
+    <section class="dashboard-layer dashboard-layer-grid">
+      <article class="form-panel">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Information</span>
+            <h2>Teacher details</h2>
+          </div>
+        </div>
+        <div class="profile-detail-grid">
+          <div><span>Email</span><strong><%= currentUser.email %></strong></div>
+          <div><span>Designation</span><strong><%= currentUser.designation || '-' %></strong></div>
+          <div><span>Department</span><strong><%= currentUser.department || '-' %></strong></div>
+          <div><span>Institution</span><strong><%= currentUser.institution || '-' %></strong></div>
+          <div><span>Phone</span><strong><%= currentUser.phone || '-' %></strong></div>
+          <div><span>Office</span><strong><%= currentUser.officeLocation || '-' %></strong></div>
+          <div><span>Office Hours</span><strong><%= currentUser.officeHours || '-' %></strong></div>
+          <div><span>Approved</span><strong><%= currentUser.approvedAt ? currentUser.approvedAt.toLocaleDateString() : '-' %></strong></div>
+        </div>
+      </article>
+
+      <article class="form-panel">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Expertise</span>
+            <h2>Teaching focus</h2>
+          </div>
+        </div>
+        <p class="profile-long-copy"><%= currentUser.expertise || 'No expertise added yet.' %></p>
+      </article>
+    </section>
+
+    <section class="table-card table-shell">
+      <div class="panel-header">
+        <div class="panel-header__copy">
+          <span class="eyebrow">Library</span>
+          <h2>Recent quizzes</h2>
+        </div>
+        <a href="/teacher/quizzes" class="btn btn-outline-primary btn-sm">View All</a>
+      </div>
+
+      <% if (!recentQuizzes.length) { %>
+        <div class="empty-state">No quizzes yet.</div>
+      <% } else { %>
+        <div class="activity-list activity-list--split">
+          <% recentQuizzes.forEach((quiz) => { %>
+            <article class="activity-item">
+              <div class="activity-item__main">
+                <span class="activity-item__icon"><i class="fas fa-file-lines"></i></span>
+                <div>
+                  <p class="activity-item__title"><%= quiz.title %></p>
+                  <p class="activity-item__meta"><%= quiz.category %> &middot; <%= quiz.createdAt ? new Date(quiz.createdAt).toLocaleDateString() : '-' %></p>
+                </div>
+              </div>
+              <div class="activity-score">
+                <strong><%= quiz.totalMarks || 0 %></strong>
+                <span><%= quiz.status %></span>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </div>
+</section>

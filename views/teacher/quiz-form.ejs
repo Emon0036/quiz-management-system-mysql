@@ -57,7 +57,7 @@
           <div class="form-field">
             <label class="form-label" for="createRosterSheet">Student sheet CSV</label>
             <input id="createRosterSheet" class="form-control" type="file" name="rosterSheet" accept=".csv,.tsv,.txt">
-            <div class="form-text">Optional while creating. Export from Google Sheets as CSV with columns: Student ID, Student Name, Exam Name, Date.</div>
+            <div class="form-text">Optional while creating. Export from Google Sheets as CSV with columns: Student ID, Student Name, Section, Exam Name, Date.</div>
           </div>
         <% } %>
 
@@ -103,12 +103,13 @@
 
       <% if (quiz._id) { %>
         <% const rosterCount = (typeof rosterEntries !== 'undefined' && rosterEntries) ? rosterEntries.length : 0; %>
+        <% const sections = (typeof rosterSections !== 'undefined' && rosterSections) ? rosterSections : []; %>
         <section class="form-panel quiz-details-form mt-4">
           <div class="panel-header">
             <div class="panel-header__copy">
               <span class="eyebrow">Student Sheet</span>
               <h2>Roster Access</h2>
-              <p><%= rosterCount %> student ID<%= rosterCount === 1 ? '' : 's' %> connected to this exam.</p>
+              <p><%= rosterCount %> student ID<%= rosterCount === 1 ? '' : 's' %> connected to this exam across <%= sections.length || 1 %> section<%= (sections.length || 1) === 1 ? '' : 's' %>.</p>
             </div>
             <span class="status-pill <%= rosterCount ? 'approved' : 'pending' %>"><%= rosterCount ? 'Active' : 'No sheet' %></span>
           </div>
@@ -117,17 +118,50 @@
             <div class="form-field">
               <label class="form-label" for="rosterSheet">Upload Google Sheet CSV</label>
               <input id="rosterSheet" class="form-control" type="file" name="rosterSheet" accept=".csv,.tsv,.txt" required>
-              <div class="form-text">Use columns: Student ID, Student Name, Exam Name, Date.</div>
+              <div class="form-text">Use columns: Student ID, Student Name, Section, Exam Name, Date. Section can be A, B, C, or any group name.</div>
             </div>
             <div class="toolbar">
               <button class="btn btn-outline-primary" type="submit">
                 <i class="fa-solid fa-file-arrow-up"></i>
                 Upload Sheet
               </button>
-              <a class="btn btn-outline-secondary <%= rosterCount ? '' : 'disabled' %>" href="<%= actionWithTab(`/teacher/quizzes/${quiz._id}/roster/download`) %>">
+            </div>
+          </form>
+
+          <form action="<%= actionWithTab(`/teacher/quizzes/${quiz._id}/roster/preview`) %>" method="GET" class="vstack gap-3 mt-4">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label" for="rosterSection">Section</label>
+                <select id="rosterSection" class="form-select" name="section" <%= rosterCount ? '' : 'disabled' %>>
+                  <option value="all">All sections</option>
+                  <% sections.forEach((section) => { %>
+                    <option value="<%= section %>">Section <%= section %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="rosterMode">Score mode</label>
+                <select id="rosterMode" class="form-select" name="mode" <%= rosterCount ? '' : 'disabled' %>>
+                  <option value="all">Every attempt score</option>
+                  <option value="best">Best score only</option>
+                  <option value="last">Last attempt score</option>
+                </select>
+              </div>
+            </div>
+            <div class="toolbar">
+              <button class="btn btn-outline-primary <%= rosterCount ? '' : 'disabled' %>" type="submit" <%= rosterCount ? '' : 'disabled' %>>
+                <i class="fa-solid fa-eye"></i>
+                Preview Sheet
+              </button>
+              <button
+                class="btn btn-outline-secondary <%= rosterCount ? '' : 'disabled' %>"
+                type="submit"
+                formaction="<%= actionWithTab(`/teacher/quizzes/${quiz._id}/roster/download`) %>"
+                <%= rosterCount ? '' : 'disabled' %>
+              >
                 <i class="fa-solid fa-file-arrow-down"></i>
                 Download Sheet
-              </a>
+              </button>
             </div>
           </form>
         </section>

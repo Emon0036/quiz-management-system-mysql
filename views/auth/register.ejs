@@ -15,9 +15,9 @@
         </a>
 
         <div class="auth-showcase__intro">
-          <span class="auth-kicker">Student signup</span>
+          <span class="auth-kicker">Account signup</span>
           <h1>Create your space.</h1>
-          <p>Set up a student account and start taking quizzes.</p>
+          <p>Students can start learning right away. Teachers submit their department details for admin approval.</p>
         </div>
 
         <div class="auth-step-list" aria-hidden="true">
@@ -39,7 +39,7 @@
       <div class="auth-showcase__footer">
         <div class="auth-mini-strip">
           <span><i class="fas fa-user-graduate"></i> Student account</span>
-          <span><i class="fas fa-user-shield"></i> Teacher by admin</span>
+          <span><i class="fas fa-user-tie"></i> Teacher application</span>
         </div>
       </div>
     </aside>
@@ -58,10 +58,25 @@
 
         <div class="auth-form-header">
           <h2>Create account</h2>
-          <p>Student signup takes a minute.</p>
+          <p>Choose your role and add the required details.</p>
         </div>
 
-        <form action="/auth/register" method="POST" class="auth-form-stack" x-data="{ showPassword: false, showConfirmPassword: false }">
+        <form action="/auth/register" method="POST" class="auth-form-stack" x-data="{ role: 'student', showPassword: false, showConfirmPassword: false }">
+          <div class="auth-role-grid">
+            <label class="auth-role-option" :class="{ 'is-active': role === 'student' }">
+              <input type="radio" name="role" value="student" x-model="role">
+              <span><i class="fas fa-user-graduate"></i></span>
+              <strong>Student</strong>
+              <small>Take exams and track progress</small>
+            </label>
+            <label class="auth-role-option" :class="{ 'is-active': role === 'teacher' }">
+              <input type="radio" name="role" value="teacher" x-model="role">
+              <span><i class="fas fa-chalkboard-user"></i></span>
+              <strong>Teacher</strong>
+              <small>Request teaching access</small>
+            </label>
+          </div>
+
           <label class="auth-field">
             <span>Full name</span>
             <input
@@ -112,6 +127,61 @@
             <small class="auth-field__hint">6+ characters.</small>
           </label>
 
+          <div x-show="role === 'teacher'" x-transition class="auth-teacher-fields">
+            <label class="auth-field">
+              <span>Institution</span>
+              <input
+                name="institution"
+                type="text"
+                class="form-input"
+                placeholder="University, college, or school"
+                :required="role === 'teacher'"
+              >
+            </label>
+
+            <label class="auth-field">
+              <span>Department</span>
+              <input
+                name="department"
+                type="text"
+                class="form-input"
+                placeholder="Computer Science, Mathematics..."
+                :required="role === 'teacher'"
+              >
+            </label>
+
+            <label class="auth-field">
+              <span>Designation</span>
+              <input
+                name="designation"
+                type="text"
+                class="form-input"
+                placeholder="Lecturer, Professor, Instructor..."
+                :required="role === 'teacher'"
+              >
+            </label>
+
+            <label class="auth-field">
+              <span>Phone</span>
+              <input
+                name="phone"
+                type="tel"
+                class="form-input"
+                placeholder="Contact number"
+              >
+            </label>
+
+            <label class="auth-field">
+              <span>Expertise</span>
+              <textarea
+                name="expertise"
+                class="form-input"
+                rows="3"
+                placeholder="Programming, DBMS, algorithms..."
+              ></textarea>
+            </label>
+          </div>
+
           <label class="auth-field">
             <span>Confirm password</span>
             <div class="auth-input-wrap">
@@ -153,7 +223,7 @@
 
           <button type="submit" class="btn btn-primary auth-submit">
             <i class="fas fa-user-plus"></i>
-            <span>Create Account</span>
+            <span x-text="role === 'teacher' ? 'Submit Teacher Request' : 'Create Account'">Create Account</span>
           </button>
         </form>
 

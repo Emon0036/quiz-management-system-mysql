@@ -6,8 +6,10 @@
     <% const currentType = selectedType || query.type || 'all'; %>
     <% const currentDifficulty = selectedDifficulty || query.difficulty || ''; %>
     <% const currentTeacherId = selectedTeacherId || query.teacher || 'all'; %>
-    <% const buildCategoryLink = (categoryValue) => `/enrollments/browse?type=${encodeURIComponent(currentType)}&teacher=${encodeURIComponent(currentTeacherId)}&category=${encodeURIComponent(categoryValue)}${currentDifficulty ? `&difficulty=${encodeURIComponent(currentDifficulty)}` : ''}`; %>
-    <% const buildTeacherLink = (teacherValue) => `/enrollments/browse?type=${encodeURIComponent(currentType)}&teacher=${encodeURIComponent(teacherValue)}&category=all${currentDifficulty ? `&difficulty=${encodeURIComponent(currentDifficulty)}` : ''}`; %>
+    <% const currentTeacherSearch = typeof teacherSearch !== 'undefined' ? teacherSearch : (query.teacherSearch || ''); %>
+    <% const teacherSearchPart = currentTeacherSearch ? `&teacherSearch=${encodeURIComponent(currentTeacherSearch)}` : ''; %>
+    <% const buildCategoryLink = (categoryValue) => `/enrollments/browse?type=${encodeURIComponent(currentType)}&teacher=${encodeURIComponent(currentTeacherId)}&category=${encodeURIComponent(categoryValue)}${currentDifficulty ? `&difficulty=${encodeURIComponent(currentDifficulty)}` : ''}${teacherSearchPart}`; %>
+    <% const buildTeacherLink = (teacherValue) => `/enrollments/browse?type=${encodeURIComponent(currentType)}&teacher=${encodeURIComponent(teacherValue)}&category=all${currentDifficulty ? `&difficulty=${encodeURIComponent(currentDifficulty)}` : ''}${teacherSearchPart}`; %>
     <div class="page-heading">
       <div>
         <span class="eyebrow">Student</span>
@@ -27,12 +29,25 @@
         <option value="short-answer" <%= (selectedType || query.type) === 'short-answer' ? 'selected' : '' %>>Short Question</option>
         <option value="coding-test" <%= (selectedType || query.type) === 'coding-test' ? 'selected' : '' %>>Coding Exam</option>
       </select>
-      <select class="form-select" name="teacher">
+      <select class="form-select" name="teacher" data-teacher-select>
         <option value="all" <%= (selectedTeacherId || query.teacher || 'all') === 'all' ? 'selected' : '' %>>All teachers</option>
         <% (teacherOptions || []).forEach((teacher) => { %>
           <option value="<%= teacher.id %>" <%= (selectedTeacherId || query.teacher) === teacher.id ? 'selected' : '' %>><%= teacher.name %></option>
         <% }) %>
       </select>
+      <div class="search-control">
+        <label class="visually-hidden" for="teacherSearch">Search teacher</label>
+        <i class="fas fa-search" aria-hidden="true"></i>
+        <input
+          id="teacherSearch"
+          class="form-control"
+          name="teacherSearch"
+          value="<%= currentTeacherSearch %>"
+          placeholder="Search teacher name"
+          autocomplete="off"
+          data-teacher-search
+        >
+      </div>
       <select class="form-select" name="category">
         <option value="all" <%= (selectedCategory || query.category || 'all') === 'all' ? 'selected' : '' %>>All categories</option>
         <% (categories || []).forEach((cat) => { %>
@@ -52,11 +67,24 @@
     </form>
 
     <% if ((teacherOptions || []).length > 0) { %>
-      <div class="chip-group">
-        <a class="filter-chip <%= (selectedTeacherId || query.teacher || 'all') === 'all' ? 'is-active' : '' %>" href="<%= buildTeacherLink('all') %>">All teachers</a>
-        <% teacherOptions.forEach((teacher) => { %>
-          <a class="filter-chip <%= (selectedTeacherId || query.teacher) === teacher.id ? 'is-active' : '' %>" href="<%= buildTeacherLink(teacher.id) %>"><%= teacher.name %></a>
-        <% }) %>
+      <div class="teacher-filter-row">
+        <div class="chip-group teacher-chip-group">
+          <a class="filter-chip <%= (selectedTeacherId || query.teacher || 'all') === 'all' ? 'is-active' : '' %>" href="<%= buildTeacherLink('all') %>">All teachers</a>
+          <% teacherOptions.forEach((teacher) => { %>
+            <a class="filter-chip <%= (selectedTeacherId || query.teacher) === teacher.id ? 'is-active' : '' %>" href="<%= buildTeacherLink(teacher.id) %>"><%= teacher.name %></a>
+          <% }) %>
+        </div>
+        <% if (typeof teacherOptionsTotal !== 'undefined' && teacherOptionsTotal > (teacherOptions || []).length) { %>
+          <p class="filter-summary">
+            <%= currentTeacherSearch ? 'Matches' : 'Teachers' %>:
+            <%= teacherSearchResultCount || 0 %>/<%= teacherOptionsTotal %>
+          </p>
+        <% } %>
+      </div>
+    <% } else if (currentTeacherSearch) { %>
+      <div class="empty-state empty-state--compact">
+        <h3>No teacher matched "<%= currentTeacherSearch %>"</h3>
+        <a class="btn btn-outline-primary btn-sm" href="/enrollments/browse?type=<%= encodeURIComponent(currentType) %>&teacher=all&category=all<%= currentDifficulty ? `&difficulty=${encodeURIComponent(currentDifficulty)}` : '' %>">Clear teacher search</a>
       </div>
     <% } %>
 
@@ -123,7 +151,14 @@
                   <span><i class="fas fa-layer-group me-2"></i><%= quiz.totalMarks %> total marks</span>
                   <span><i class="fas fa-rotate me-2"></i><%= attemptLimit %> attempt<%= attemptLimit === 1 ? '' : 's' %> per purchase</span>
                   <span><i class="fas fa-bullseye me-2"></i>Pass mark <%= quiz.passingMarks %>%</span>
-                  <span><i class="fas fa-user-tie me-2"></i><%= quiz.createdBy?.name || 'Teacher' %></span>
+                  <span>
+                    <i class="fas fa-user-tie me-2"></i>
+                    <% if (quiz.createdBy?._id) { %>
+                      <a class="teacher-profile-link" href="/student/teachers/<%= quiz.createdBy._id %>/profile"><%= quiz.createdBy.name || 'Teacher' %></a>
+                    <% } else { %>
+                      <%= quiz.createdBy?.name || 'Teacher' %>
+                    <% } %>
+                  </span>
                 </div>
                 <div class="quiz-card__actions">
                   <% if (needsReEnroll) { %>

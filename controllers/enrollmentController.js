@@ -5,7 +5,10 @@ const GlobalLeaderboard = require('../models/GlobalLeaderboard');
 const Attempt = require('../models/Attempt');
 const Problem = require('../models/Problem');
 const Submission = require('../models/Submission');
+const User = require('../models/User');
 const { getQuizAttemptLimit, hasReachedAttemptLimit } = require('../utils/attemptLimits');
+
+const TEACHER_OPTION_LIMIT = 80;
 
 function normalizeCategory(category) {
   const value = String(category || '').trim();
@@ -18,6 +21,33 @@ function sortByCategoryName(left, right) {
 
 function sortByDisplayName(left, right) {
   return left.localeCompare(right, undefined, { sensitivity: 'base' });
+}
+
+function normalizeSearchText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function teacherMatchesSearch(teacher, searchTerm) {
+  if (!searchTerm) return true;
+  return normalizeSearchText(teacher.name).includes(searchTerm);
+}
+
+function limitTeacherOptions(teachers, selectedTeacherId, teacherSearch) {
+  const searchTerm = normalizeSearchText(teacherSearch);
+  const selectedTeacher = teachers.find((teacher) => teacher.id === selectedTeacherId) || null;
+  const matches = teachers.filter((teacher) => teacherMatchesSearch(teacher, searchTerm));
+  const limited = matches.slice(0, TEACHER_OPTION_LIMIT);
+
+  if (selectedTeacher && !limited.some((teacher) => teacher.id === selectedTeacher.id)) {
+    limited.unshift(selectedTeacher);
+  }
+
+  return {
+    selectedTeacher,
+    teacherOptions: limited,
+    teacherSearchResultCount: matches.length,
+    teacherOptionsTotal: teachers.length,
+  };
 }
 
 function buildCategoryGroups(items, getCategory) {
@@ -34,6 +64,29 @@ function buildCategoryGroups(items, getCategory) {
     .map(([category, groupedItems]) => ({ category, items: groupedItems }));
 }
 
+async function removeUnattemptedEnrollmentProgress(studentId, quiz) {
+  if (!quiz) return;
+
+  const progress = await Progress.findOne({ student: studentId });
+  if (!progress) return;
+
+  progress.totalQuizzes = Math.max(0, Number(progress.totalQuizzes || 0) - 1);
+  progress.inProgressQuizzes = Math.max(0, Number(progress.inProgressQuizzes || 0) - 1);
+  progress.quizzesByCategory = Array.isArray(progress.quizzesByCategory) ? progress.quizzesByCategory : [];
+
+  const category = quiz.category || 'General';
+  const categoryIndex = progress.quizzesByCategory.findIndex((item) => item.category === category);
+  if (categoryIndex > -1) {
+    const entry = progress.quizzesByCategory[categoryIndex];
+    entry.total = Math.max(0, Number(entry.total || 0) - 1);
+    if (Number(entry.total || 0) === 0 && Number(entry.completed || 0) === 0) {
+      progress.quizzesByCategory.splice(categoryIndex, 1);
+    }
+  }
+
+  await progress.save();
+}
+
 /**
  * Get available quizzes by category for student enrollment
  */
@@ -43,6 +96,7 @@ exports.browseQuizzes = async (req, res) => {
     const selectedDifficulty = String(req.query.difficulty || '');
     const selectedType = String(req.query.type || 'all');
     const selectedTeacherId = String(req.query.teacher || 'all');
+    const teacherSearch = String(req.query.teacherSearch || '').trim();
     
     const filter = { status: 'published' };
     if (selectedCategory !== 'all') {
@@ -62,15 +116,13 @@ exports.browseQuizzes = async (req, res) => {
     if (selectedDifficulty) teacherSourceFilter.difficulty = selectedDifficulty;
     if (selectedType !== 'all') teacherSourceFilter.examType = selectedType;
 
-    const [quizzes, enrollments, rawCategories, teacherSourceQuizzes] = await Promise.all([
+    const [quizzes, enrollments, rawCategories, teacherSourceIds] = await Promise.all([
       Quiz.find(filter)
         .populate('createdBy', 'name')
         .sort('-createdAt'),
       Enrollment.find({ student: req.user._id }),
       Quiz.distinct('category', teacherAwareCategoryFilter),
-      Quiz.find(teacherSourceFilter)
-        .select('createdBy')
-        .populate('createdBy', 'name role accountStatus'),
+      Quiz.distinct('createdBy', teacherSourceFilter),
     ]);
 
     const groupedQuizzes = buildCategoryGroups(
@@ -93,25 +145,28 @@ exports.browseQuizzes = async (req, res) => {
       .map((category) => normalizeCategory(category))
       .sort(sortByCategoryName);
 
-    const teacherMap = new Map();
-    teacherSourceQuizzes.forEach((quiz) => {
-      const teacher = quiz.createdBy;
-      if (!teacher || !teacher._id) return;
-      if (teacher.role && teacher.role !== 'teacher') return;
-      if (teacher.accountStatus === 'blocked') return;
-      const id = String(teacher._id);
-      if (!teacherMap.has(id)) {
-        teacherMap.set(id, {
-          id,
-          name: String(teacher.name || 'Teacher').trim() || 'Teacher',
-        });
-      }
-    });
-
-    const teacherOptions = Array.from(teacherMap.values())
+    const sourceTeacherIds = Array.from(new Set((teacherSourceIds || []).map(String).filter(Boolean)));
+    const sourceTeachers = sourceTeacherIds.length
+      ? await User.find({
+          _id: { $in: sourceTeacherIds },
+          role: 'teacher',
+          teacherStatus: 'approved',
+          accountStatus: 'active',
+        })
+      : [];
+    const allTeacherOptions = sourceTeachers
+      .map((teacher) => ({
+        id: String(teacher._id),
+        name: String(teacher.name || 'Teacher').trim() || 'Teacher',
+      }))
       .sort((left, right) => sortByDisplayName(left.name, right.name));
 
-    const selectedTeacher = teacherOptions.find((teacher) => teacher.id === selectedTeacherId) || null;
+    const {
+      selectedTeacher,
+      teacherOptions,
+      teacherSearchResultCount,
+      teacherOptionsTotal,
+    } = limitTeacherOptions(allTeacherOptions, selectedTeacherId, teacherSearch);
 
     res.render('student/quizzes', {
       title: 'Browse Exams',
@@ -119,6 +174,10 @@ exports.browseQuizzes = async (req, res) => {
       groupedQuizzes,
       categories,
       teacherOptions,
+      teacherSearch,
+      teacherSearchResultCount,
+      teacherOptionsTotal,
+      teacherOptionsLimit: TEACHER_OPTION_LIMIT,
       selectedCategory,
       selectedDifficulty,
       selectedType,
@@ -177,29 +236,32 @@ exports.enrollQuiz = async (req, res) => {
       quiz: quizId,
     });
 
-    // Update progress
-    const progress = await Progress.findOneAndUpdate(
-      { student: req.user._id },
-      { $setOnInsert: { student: req.user._id } },
-      { upsert: true, returnDocument: 'after' }
-    );
-    progress.totalQuizzes += 1;
-    progress.inProgressQuizzes += 1;
+    const existingAttemptCount = await Attempt.countDocuments({ student: req.user._id, quiz: quizId });
+    if (existingAttemptCount === 0) {
+      // Update progress for a genuinely new exam in the student's workspace.
+      const progress = await Progress.findOneAndUpdate(
+        { student: req.user._id },
+        { $setOnInsert: { student: req.user._id } },
+        { upsert: true, returnDocument: 'after' }
+      );
+      progress.totalQuizzes += 1;
+      progress.inProgressQuizzes += 1;
 
-    // Update category progress
-    const categoryIndex = progress.quizzesByCategory.findIndex((item) => item.category === quiz.category);
-    if (categoryIndex > -1) {
-      progress.quizzesByCategory[categoryIndex].total += 1;
-    } else {
-      progress.quizzesByCategory.push({
-        category: quiz.category,
-        total: 1,
-        completed: 0,
-        averageScore: 0,
-      });
+      // Update category progress
+      const categoryIndex = progress.quizzesByCategory.findIndex((item) => item.category === quiz.category);
+      if (categoryIndex > -1) {
+        progress.quizzesByCategory[categoryIndex].total += 1;
+      } else {
+        progress.quizzesByCategory.push({
+          category: quiz.category,
+          total: 1,
+          completed: 0,
+          averageScore: 0,
+        });
+      }
+
+      await progress.save();
     }
-
-    await progress.save();
 
     req.flash('success', `Enrolled in "${quiz.title}"`);
     res.redirect('/enrollments/my-quizzes');
@@ -207,6 +269,44 @@ exports.enrollQuiz = async (req, res) => {
     console.error('Error enrolling in quiz:', error.message);
     req.flash('error', 'Failed to enroll in quiz');
     res.redirect('/enrollments/browse');
+  }
+};
+
+/**
+ * Remove an enrolled exam from the student's My Exams list.
+ * Historical attempts and results stay available in history/review pages.
+ */
+exports.deleteEnrollment = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const enrollment = await Enrollment.findOne({
+      student: req.user._id,
+      quiz: quizId,
+    }).populate('quiz', 'title category');
+
+    if (!enrollment) {
+      req.flash('error', 'That enrolled exam was not found.');
+      return res.redirect('/enrollments/my-quizzes');
+    }
+
+    const attemptCount = await Attempt.countDocuments({
+      student: req.user._id,
+      quiz: quizId,
+    });
+    const quizTitle = enrollment.quiz?.title || 'exam';
+
+    await Enrollment.deleteOne({ _id: enrollment._id });
+
+    if (attemptCount === 0) {
+      await removeUnattemptedEnrollmentProgress(req.user._id, enrollment.quiz);
+    }
+
+    req.flash('success', `Removed "${quizTitle}" from My Exams.`);
+    return res.redirect('/enrollments/my-quizzes');
+  } catch (error) {
+    console.error('Error deleting enrollment:', error.message);
+    req.flash('error', 'Failed to remove enrolled exam.');
+    return res.redirect('/enrollments/my-quizzes');
   }
 };
 

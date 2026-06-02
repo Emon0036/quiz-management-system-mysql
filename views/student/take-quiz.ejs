@@ -56,11 +56,15 @@
     <input type="hidden" name="autoSubmitReason" id="autoSubmitReason" value="">
     <% if (typeof rosterAccess !== 'undefined' && rosterAccess) { %>
       <input type="hidden" name="examRosterStudentId" value="<%= rosterAccess.studentId %>">
+      <input type="hidden" name="examRosterSection" value="<%= rosterAccess.section || '' %>">
       <div class="alert alert-info small">
         <i class="fa-solid fa-id-card me-2"></i>
         Verified student: <strong><%= rosterAccess.studentName || rosterAccess.studentId %></strong>
         <% if (rosterAccess.studentName) { %>
           <span>(ID: <%= rosterAccess.studentId %>)</span>
+        <% } %>
+        <% if (rosterAccess.section) { %>
+          <span class="d-block">Section: <strong><%= rosterAccess.section %></strong></span>
         <% } %>
       </div>
     <% } %>

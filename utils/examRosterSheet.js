@@ -3,8 +3,10 @@ const User = require('../models/User');
 
 const STUDENT_ID_HEADERS = ['studentid', 'student_id', 'student id', 'id', 'roll', 'rollno', 'roll number'];
 const STUDENT_NAME_HEADERS = ['studentname', 'student_name', 'student name', 'name', 'full name', 'fullname'];
+const SECTION_HEADERS = ['section', 'sec', 'class section', 'class_section', 'group', 'batch'];
 const EXAM_NAME_HEADERS = ['examname', 'exam_name', 'exam name', 'exam', 'quiz', 'quizname', 'quiz name'];
 const EXAM_DATE_HEADERS = ['date', 'examdate', 'exam_date', 'exam date'];
+const ROSTER_EXPORT_MODES = new Set(['all', 'best', 'last']);
 
 function normalizeStudentId(value) {
   return String(value || '').trim().toUpperCase();
@@ -12,6 +14,16 @@ function normalizeStudentId(value) {
 
 function normalizeStudentName(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function normalizeSection(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+function getDocumentId(value) {
+  if (!value) return '';
+  if (typeof value === 'object') return String(value._id || value.id || '');
+  return String(value);
 }
 
 function normalizeHeader(value) {
@@ -118,6 +130,15 @@ function parseFlexibleDate(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function normalizeRosterExportMode(value) {
+  const mode = String(value || '').trim().toLowerCase();
+  return ROSTER_EXPORT_MODES.has(mode) ? mode : 'all';
+}
+
+function rosterEntryKey(studentId, section = '') {
+  return `${normalizeSection(section)}::${normalizeStudentId(studentId)}`;
+}
+
 function parseRosterSheet(buffer, fallbackExamName) {
   const content = buffer.toString('utf8').replace(/^\uFEFF/, '');
   const rows = splitCsvRows(content);
@@ -127,6 +148,7 @@ function parseRosterSheet(buffer, fallbackExamName) {
   const headers = parseCsvLine(rows[0], delimiter);
   const studentIdColumn = findColumn(headers, STUDENT_ID_HEADERS);
   const studentNameColumn = findColumn(headers, STUDENT_NAME_HEADERS);
+  const sectionColumn = findColumn(headers, SECTION_HEADERS);
   const examNameColumn = findColumn(headers, EXAM_NAME_HEADERS);
   const examDateColumn = findColumn(headers, EXAM_DATE_HEADERS);
 
@@ -145,12 +167,14 @@ function parseRosterSheet(buffer, fallbackExamName) {
 
       const studentId = normalizeStudentId(sourceData[studentIdColumn]);
       const studentName = normalizeStudentName(studentNameColumn ? sourceData[studentNameColumn] : '');
+      const section = normalizeSection(sectionColumn ? sourceData[sectionColumn] : '');
       const examName = String(examNameColumn ? sourceData[examNameColumn] : fallbackExamName || '').trim();
       const examDate = parseFlexibleDate(examDateColumn ? sourceData[examDateColumn] : '');
 
       return {
         studentId,
         studentName,
+        section,
         examName,
         examDate,
         sourceData,
@@ -208,6 +232,11 @@ function formatAttemptMarks(attempt) {
   return `${score}/${totalMarks} (${percentage}%)`;
 }
 
+function formatAttemptNumber(attempt) {
+  if (!attempt) return '';
+  return normalizedAttemptNumber(attempt);
+}
+
 function getAttemptColumnCount(entries) {
   const maxAttemptNumber = (entries || []).reduce((max, entry) => {
     const entryMax = sortAttempts(entry.attempts).reduce(
@@ -219,59 +248,138 @@ function getAttemptColumnCount(entries) {
   return Math.max(1, maxAttemptNumber);
 }
 
-function formatRosterCsv(entries, quiz = {}) {
-  const attemptColumnCount = getAttemptColumnCount(entries);
-  const headers = ['Student ID', 'Student Name', 'Exam Name', 'Date', 'Attempt Limit'];
-  for (let attemptNumber = 1; attemptNumber <= attemptColumnCount; attemptNumber += 1) {
-    headers.push(
-      `Attempt ${attemptNumber} Marks`,
-      `Attempt ${attemptNumber} Submitted At`,
-      `Attempt ${attemptNumber} Status`
-    );
+function bestAttempt(attempts) {
+  return sortAttempts(attempts)
+    .filter((attempt) => attempt.status !== 'pending-review')
+    .sort((left, right) => {
+      const percentageOrder = Number(right.percentage || 0) - Number(left.percentage || 0);
+      if (percentageOrder !== 0) return percentageOrder;
+      const scoreOrder = Number(right.score || 0) - Number(left.score || 0);
+      if (scoreOrder !== 0) return scoreOrder;
+      return new Date(right.submittedAt || 0) - new Date(left.submittedAt || 0);
+    })[0] || null;
+}
+
+function lastAttempt(attempts) {
+  const sorted = sortAttempts(attempts);
+  return sorted[sorted.length - 1] || null;
+}
+
+function sectionLabel(value) {
+  return normalizeSection(value) || 'Unsectioned';
+}
+
+function sortRosterEntries(entries) {
+  return [...(entries || [])].sort((left, right) => {
+    const sectionOrder = sectionLabel(left.section).localeCompare(sectionLabel(right.section), undefined, { sensitivity: 'base' });
+    if (sectionOrder !== 0) return sectionOrder;
+    return String(left.studentId || '').localeCompare(String(right.studentId || ''), undefined, { numeric: true, sensitivity: 'base' });
+  });
+}
+
+function buildRosterPreviewRows(entries, quiz = {}, options = {}) {
+  const mode = normalizeRosterExportMode(options.mode);
+  const sortedEntries = sortRosterEntries(entries);
+  const headers = ['Section', 'Student ID', 'Student Name', 'Exam Name', 'Date', 'Attempt Limit'];
+  const rows = [];
+
+  if (mode === 'all') {
+    const attemptColumnCount = getAttemptColumnCount(sortedEntries);
+    for (let attemptNumber = 1; attemptNumber <= attemptColumnCount; attemptNumber += 1) {
+      headers.push(
+        `Attempt ${attemptNumber} Marks`,
+        `Attempt ${attemptNumber} Submitted At`,
+        `Attempt ${attemptNumber} Status`
+      );
+    }
+
+    sortedEntries.forEach((entry) => {
+      const attemptsByNumber = new Map(
+        sortAttempts(entry.attempts).map((attempt) => [normalizedAttemptNumber(attempt), attempt])
+      );
+      const row = [
+        sectionLabel(entry.section),
+        entry.studentId,
+        entry.studentName || '',
+        entry.examName,
+        formatDate(entry.examDate),
+        quiz.maxAttempts || '',
+      ];
+
+      for (let attemptNumber = 1; attemptNumber <= attemptColumnCount; attemptNumber += 1) {
+        const attempt = attemptsByNumber.get(attemptNumber);
+        row.push(
+          formatAttemptMarks(attempt),
+          formatDateTime(attempt?.submittedAt),
+          attempt?.status || ''
+        );
+      }
+
+      rows.push(row);
+    });
+
+    return { mode, headers, rows };
   }
 
-  const lines = [headers.map(escapeCsv).join(',')];
+  headers.push(
+    mode === 'best' ? 'Best Marks' : 'Last Marks',
+    mode === 'best' ? 'Best Submitted At' : 'Last Submitted At',
+    mode === 'best' ? 'Best Status' : 'Last Status',
+    mode === 'best' ? 'Best Attempt Number' : 'Last Attempt Number'
+  );
 
-  entries.forEach((entry) => {
-    const attemptsByNumber = new Map(
-      sortAttempts(entry.attempts).map((attempt) => [normalizedAttemptNumber(attempt), attempt])
-    );
-    const row = [
+  sortedEntries.forEach((entry) => {
+    const attempt = mode === 'best' ? bestAttempt(entry.attempts) : lastAttempt(entry.attempts);
+    rows.push([
+      sectionLabel(entry.section),
       entry.studentId,
       entry.studentName || '',
       entry.examName,
       formatDate(entry.examDate),
       quiz.maxAttempts || '',
-    ];
-
-    for (let attemptNumber = 1; attemptNumber <= attemptColumnCount; attemptNumber += 1) {
-      const attempt = attemptsByNumber.get(attemptNumber);
-      row.push(
-        formatAttemptMarks(attempt),
-        formatDateTime(attempt?.submittedAt),
-        attempt?.status || ''
-      );
-    }
-
-    lines.push(
-      row.map(escapeCsv).join(',')
-    );
+      formatAttemptMarks(attempt),
+      formatDateTime(attempt?.submittedAt),
+      attempt?.status || '',
+      formatAttemptNumber(attempt),
+    ]);
   });
+
+  return { mode, headers, rows };
+}
+
+function formatRosterCsv(entries, quiz = {}, options = {}) {
+  const { headers, rows } = buildRosterPreviewRows(entries, quiz, options);
+  const lines = [headers.map(escapeCsv).join(',')];
+  rows.forEach((row) => lines.push(row.map(escapeCsv).join(',')));
 
   return `${lines.join('\r\n')}\r\n`;
 }
 
-async function findRosterEntryForQuiz(quizId, studentId) {
+async function findRosterEntryForQuiz(quizId, studentId, section) {
   const normalizedStudentId = normalizeStudentId(studentId);
   if (!normalizedStudentId) return null;
-  return ExamRosterEntry.findOne({ quiz: quizId, studentId: normalizedStudentId });
+  const filter = { quiz: quizId, studentId: normalizedStudentId };
+  if (section !== undefined && section !== null) filter.section = normalizeSection(section);
+  return ExamRosterEntry.findOne(filter);
+}
+
+async function findRosterEntryForQuizByStudent(quizId, studentUserId) {
+  const normalizedUserId = getDocumentId(studentUserId);
+  if (!normalizedUserId) return null;
+  return ExamRosterEntry.findOne({ quiz: quizId, student: normalizedUserId });
 }
 
 async function recordRosterAttempt(entry, attempt) {
   if (!entry || !attempt) return null;
 
   const attemptId = String(attempt._id || attempt.id || '');
+  const studentRef = attempt.student;
+  const studentUserId = getDocumentId(studentRef);
   entry.attempts = Array.isArray(entry.attempts) ? entry.attempts : [];
+
+  if (studentUserId && !entry.student) {
+    entry.student = studentUserId;
+  }
 
   let record = entry.attempts.find((item) => String(item.attempt) === attemptId);
   if (!record) {
@@ -299,12 +407,8 @@ async function recordRosterAttempt(entry, attempt) {
   record.passed = Boolean(attempt.passed);
   if (record.status === 'reviewed') record.reviewedAt = new Date();
 
-  if (!entry.studentName && attempt.student) {
-    const studentRef = attempt.student;
-    const userId = typeof studentRef === 'object'
-      ? String(studentRef._id || studentRef.id || '')
-      : String(studentRef || '');
-    const userName = studentRef?.name || (userId ? (await User.findById(userId))?.name : '');
+  if (!entry.studentName && studentUserId) {
+    const userName = studentRef?.name || (await User.findById(studentUserId))?.name || '';
     const normalizedName = normalizeStudentName(userName);
     if (normalizedName) entry.studentName = normalizedName;
   }
@@ -330,12 +434,17 @@ async function updateRosterAttemptFromReview(attempt) {
 }
 
 module.exports = {
+  buildRosterPreviewRows,
   formatRosterCsv,
   findRosterEntryForQuiz,
+  findRosterEntryForQuizByStudent,
   normalizeExamName,
+  normalizeRosterExportMode,
+  normalizeSection,
   normalizeStudentId,
   normalizeStudentName,
   parseRosterSheet,
   recordRosterAttempt,
+  rosterEntryKey,
   updateRosterAttemptFromReview,
 };

@@ -9,6 +9,24 @@
       <h1 class="h3 mt-2">Waiting for admin approval</h1>
       <p class="text-muted mb-4">Your teacher registration has been sent to the admin. Once approved, your teacher dashboard and quiz tools will open automatically after login.</p>
     <% } %>
+    <div class="profile-detail-grid profile-detail-grid--compact text-start mb-4">
+      <div>
+        <span>Department</span>
+        <strong><%= currentUser.department || 'Not provided' %></strong>
+      </div>
+      <div>
+        <span>Institution</span>
+        <strong><%= currentUser.institution || 'Not provided' %></strong>
+      </div>
+      <div>
+        <span>Designation</span>
+        <strong><%= currentUser.designation || 'Not provided' %></strong>
+      </div>
+      <div>
+        <span>Email</span>
+        <strong><%= currentUser.email %></strong>
+      </div>
+    </div>
     <form action="/auth/logout" method="POST">
       <% if (currentTabId) { %>
         <input type="hidden" name="tab" value="<%= currentTabId %>">

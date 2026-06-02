@@ -7,6 +7,7 @@ const enrollmentController = require('../controllers/enrollmentController');
 // Student routes - enrollment and progress
 router.get('/browse', ensureStudent, asyncHandler(enrollmentController.browseQuizzes));
 router.post('/:quizId/enroll', ensureStudent, asyncHandler(enrollmentController.enrollQuiz));
+router.delete('/:quizId/enroll', ensureStudent, asyncHandler(enrollmentController.deleteEnrollment));
 router.get('/my-quizzes', ensureStudent, asyncHandler(enrollmentController.getEnrolledQuizzes));
 router.get('/progress', ensureStudent, asyncHandler(enrollmentController.getProgress));
 router.get('/leaderboard', ensureStudent, asyncHandler(enrollmentController.getLeaderboard));

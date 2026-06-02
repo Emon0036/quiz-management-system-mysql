@@ -7,6 +7,10 @@ const router = express.Router();
 
 router.use(ensureStudent);
 router.get('/dashboard', asyncHandler(studentController.dashboard));
+router.get('/profile', asyncHandler(studentController.profile));
+router.get('/profile/edit', asyncHandler(studentController.editProfile));
+router.patch('/profile', asyncHandler(studentController.updateProfile));
+router.get('/teachers/:teacherId/profile', asyncHandler(studentController.teacherProfile));
 router.get('/quizzes', asyncHandler(studentController.quizList));
 router.get('/progress', (req, res) => res.redirect('/enrollments/progress'));
 router.get('/leaderboard', (req, res) => res.redirect('/enrollments/leaderboard'));

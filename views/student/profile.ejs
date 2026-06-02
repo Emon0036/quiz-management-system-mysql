@@ -1,0 +1,160 @@
+<% layout('layouts/main') %>
+<%
+  const progressData = {
+    totalPoints: 0,
+    averageScore: 0,
+    streak: 0,
+    completedQuizzes: 0,
+    totalAttempts: 0,
+    passedQuizzes: 0,
+    failedQuizzes: 0,
+    ...(progress || {})
+  };
+  const leaderboardData = {
+    badge: 'none',
+    quizzesCompleted: progressData.completedQuizzes || 0,
+    ...(leaderboard || {})
+  };
+  const recentAttempts = (attempts || []).slice(0, 5);
+%>
+
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <section class="profile-hero">
+      <div class="profile-hero__main">
+        <span class="profile-avatar profile-avatar--xl"><%= currentUser.name.charAt(0).toUpperCase() %></span>
+        <div>
+          <span class="eyebrow">Student Profile</span>
+          <h1><%= currentUser.name %></h1>
+          <p><%= currentUser.bio || 'Learning profile ready.' %></p>
+          <div class="profile-chip-row">
+            <span class="status-pill approved"><i class="fas fa-ranking-star"></i> <%= rank ? `Global #${rank}` : 'Not ranked yet' %></span>
+            <span class="status-pill pending"><i class="fas fa-medal"></i> <%= leaderboardData.badge && leaderboardData.badge !== 'none' ? leaderboardData.badge : 'No badge yet' %></span>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <a href="/student/profile/edit" class="btn btn-primary">
+          <i class="fas fa-pen"></i>
+          Edit Profile
+        </a>
+      </div>
+    </section>
+
+    <section class="metric-grid dashboard-metric-grid">
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Position</span>
+            <strong class="metric-card__value"><%= rank ? `#${rank}` : '-' %></strong>
+            <small class="metric-card__meta">Global leaderboard</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-ranking-star"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Points</span>
+            <strong class="metric-card__value"><%= progressData.totalPoints %></strong>
+            <small class="metric-card__meta"><%= progressData.averageScore %>% average score</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-star"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Completed</span>
+            <strong class="metric-card__value"><%= progressData.completedQuizzes %></strong>
+            <small class="metric-card__meta"><%= progressData.totalAttempts %> total attempts</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-circle-check"></i></span>
+        </div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-card__top">
+          <div>
+            <span class="metric-card__label">Pass Record</span>
+            <strong class="metric-card__value"><%= progressData.passedQuizzes %>/<%= Number(progressData.passedQuizzes || 0) + Number(progressData.failedQuizzes || 0) %></strong>
+            <small class="metric-card__meta"><%= progressData.streak %> streak</small>
+          </div>
+          <span class="metric-card__icon"><i class="fas fa-fire"></i></span>
+        </div>
+      </article>
+    </section>
+
+    <section class="dashboard-layer dashboard-layer-grid">
+      <article class="form-panel">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Information</span>
+            <h2>Student details</h2>
+          </div>
+        </div>
+        <div class="profile-detail-grid">
+          <div><span>Email</span><strong><%= currentUser.email %></strong></div>
+          <div><span>Student ID</span><strong><%= currentUser.studentId || '-' %></strong></div>
+          <div><span>Department</span><strong><%= currentUser.department || '-' %></strong></div>
+          <div><span>Institution</span><strong><%= currentUser.institution || '-' %></strong></div>
+          <div><span>Section</span><strong><%= currentUser.section || '-' %></strong></div>
+          <div><span>Batch</span><strong><%= currentUser.batch || '-' %></strong></div>
+          <div><span>Phone</span><strong><%= currentUser.phone || '-' %></strong></div>
+          <div><span>Joined</span><strong><%= currentUser.createdAt ? currentUser.createdAt.toLocaleDateString() : '-' %></strong></div>
+        </div>
+      </article>
+
+      <article class="form-panel">
+        <div class="panel-header">
+          <div class="panel-header__copy">
+            <span class="eyebrow">Achievements</span>
+            <h2>Progress badges</h2>
+          </div>
+        </div>
+        <div class="achievement-grid">
+          <% achievements.forEach((achievement) => { %>
+            <div class="achievement-card <%= achievement.earned ? 'is-earned' : '' %>">
+              <span><i class="fas <%= achievement.icon %>"></i></span>
+              <div>
+                <strong><%= achievement.title %></strong>
+                <small><%= achievement.detail %></small>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </article>
+    </section>
+
+    <section class="table-card table-shell">
+      <div class="panel-header">
+        <div class="panel-header__copy">
+          <span class="eyebrow">Activity</span>
+          <h2>Recent attempts</h2>
+        </div>
+        <a href="/student/history" class="btn btn-outline-primary btn-sm">View History</a>
+      </div>
+
+      <% if (!recentAttempts.length) { %>
+        <div class="empty-state">No attempts yet.</div>
+      <% } else { %>
+        <div class="activity-list activity-list--split">
+          <% recentAttempts.forEach((attempt) => { %>
+            <article class="activity-item">
+              <div class="activity-item__main">
+                <span class="activity-item__icon"><i class="fas fa-file-signature"></i></span>
+                <div>
+                  <p class="activity-item__title"><%= attempt.quiz?.title || 'Removed quiz' %></p>
+                  <p class="activity-item__meta"><%= attempt.quiz?.category || 'General' %> &middot; <%= attempt.submittedAt ? new Date(attempt.submittedAt).toLocaleDateString() : '-' %></p>
+                </div>
+              </div>
+              <div class="activity-score">
+                <strong><%= attempt.percentage %>%</strong>
+                <span><%= attempt.status === 'pending-review' ? 'Pending review' : 'Finalized' %></span>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </div>
+</section>

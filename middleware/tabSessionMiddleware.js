@@ -130,30 +130,24 @@ function attachTabUser(req, res, next) {
 }
 
 async function resolveTabUser(req, res, next) {
-  const expectedRoles = expectedRolesForPath(req.path || '');
-  const roleScopedUserId = expectedRoles.length === 1 ? getRoleUserId(req, expectedRoles) : null;
+  let inferredTabUser = null;
+  let scopedUserId =
+    (req.currentTabId ? req.session?.tabUsers?.[req.currentTabId] : null) ||
+    req.currentTabUserId ||
+    null;
 
-  if (
-    roleScopedUserId &&
-    req.currentTabId &&
-    req.session?.tabUsers?.[req.currentTabId] &&
-    String(req.session.tabUsers[req.currentTabId]) !== String(roleScopedUserId)
-  ) {
-    const matchingTab = Object.entries(req.session.tabUsers).find(([, userId]) => String(userId) === String(roleScopedUserId));
-    req.currentTabId = matchingTab ? matchingTab[0] : generateTabId();
-    req.currentTabUserId = roleScopedUserId;
-    req.session.tabUsers[req.currentTabId] = roleScopedUserId;
-    req.session.lastActiveTabId = req.currentTabId;
+  if (!scopedUserId) {
+    inferredTabUser = await findTabUserForRequestRole(req);
+    if (inferredTabUser) {
+      req.currentTabId = inferredTabUser.tabId || req.currentTabId || generateTabId();
+      req.currentTabUserId = inferredTabUser.userId;
+      scopedUserId = inferredTabUser.userId;
+      req.session.tabUsers[req.currentTabId] = String(scopedUserId);
+      req.session.lastActiveTabId = req.currentTabId;
+    }
   }
 
-  const inferredTabUser = !req.currentTabId ? await findTabUserForRequestRole(req) : null;
-  if (inferredTabUser) {
-    req.currentTabId = inferredTabUser.tabId || generateTabId();
-    req.currentTabUserId = inferredTabUser.userId;
-    req.session.lastActiveTabId = req.currentTabId;
-  }
-
-  if (!req.currentTabId) {
+  if (!scopedUserId && !req.currentTabId) {
     if (!canRecoverFromPassportSession(req)) {
       req.user = null;
       req.isAuthenticated = () => false;
@@ -161,13 +155,12 @@ async function resolveTabUser(req, res, next) {
     }
 
     req.currentTabId = req.session.lastActiveTabId || generateTabId();
+    scopedUserId = req.session.passport.user;
   }
 
-  const scopedUserId =
-    roleScopedUserId ||
-    req.session?.tabUsers?.[req.currentTabId] ||
-    req.currentTabUserId ||
-    (canRecoverFromPassportSession(req) ? req.session.passport.user : null);
+  if (!scopedUserId && canRecoverFromPassportSession(req)) {
+    scopedUserId = req.session.passport.user;
+  }
 
   if (!scopedUserId) {
     req.user = null;

@@ -1,0 +1,60 @@
+<% layout('layouts/main') %>
+
+<section class="page-shell">
+  <div class="page-container page-stack">
+    <div class="page-heading">
+      <div>
+        <span class="eyebrow">Student Profile</span>
+        <h1>Edit profile</h1>
+        <p>Keep your academic information current.</p>
+      </div>
+      <div class="toolbar">
+        <a href="/student/profile" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </div>
+
+    <form class="form-panel profile-form" action="/student/profile?_method=PATCH" method="POST">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="name">Full name</label>
+          <input id="name" class="form-control" name="name" value="<%= currentUser.name || '' %>" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="studentId">Student ID</label>
+          <input id="studentId" class="form-control" name="studentId" value="<%= currentUser.studentId || '' %>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="institution">Institution</label>
+          <input id="institution" class="form-control" name="institution" value="<%= currentUser.institution || '' %>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="department">Department</label>
+          <input id="department" class="form-control" name="department" value="<%= currentUser.department || '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="section">Section</label>
+          <input id="section" class="form-control" name="section" value="<%= currentUser.section || '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="batch">Batch</label>
+          <input id="batch" class="form-control" name="batch" value="<%= currentUser.batch || '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="phone">Phone</label>
+          <input id="phone" class="form-control" name="phone" value="<%= currentUser.phone || '' %>">
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="bio">Bio</label>
+          <textarea id="bio" class="form-control" name="bio" rows="4"><%= currentUser.bio || '' %></textarea>
+        </div>
+      </div>
+
+      <div class="toolbar mt-4">
+        <button class="btn btn-primary" type="submit">
+          <i class="fas fa-floppy-disk"></i>
+          Save Profile
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
