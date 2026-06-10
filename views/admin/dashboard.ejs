@@ -218,7 +218,10 @@
             <tbody>
               <% pendingTeachers.forEach((teacher) => { %>
                 <tr>
-                  <td><%= teacher.name %></td>
+                  <td>
+                    <%= teacher.name %>
+                    <div class="small text-muted">Teacher ID: <%= teacher.teacherCode || '-' %></div>
+                  </td>
                   <td><%= teacher.email %></td>
                   <td>
                     <strong><%= teacher.department || 'Not provided' %></strong>

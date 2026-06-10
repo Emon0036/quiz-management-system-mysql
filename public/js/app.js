@@ -246,9 +246,141 @@
 (function initTeacherSearchFilter() {
   const teacherSearch = document.querySelector('[data-teacher-search]');
   const teacherSelect = document.querySelector('[data-teacher-select]');
+  const suggestionsPanel = document.querySelector('[data-teacher-suggestions]');
+  const teacherOptionsJson = document.querySelector('[data-teacher-options-json]');
   if (!teacherSearch || !teacherSelect) return;
+
+  let teacherOptions = [];
+  try {
+    teacherOptions = teacherOptionsJson ? JSON.parse(teacherOptionsJson.textContent || '[]') : [];
+  } catch {
+    teacherOptions = [];
+  }
+
+  let activeSuggestionIndex = -1;
+
+  function normalizeSearchValue(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function compactSearchValue(value) {
+    return normalizeSearchValue(value).replace(/[^a-z0-9]/g, '');
+  }
+
+  function getMatchingTeachers(value) {
+    const searchTerm = normalizeSearchValue(value);
+    const compactSearchTerm = compactSearchValue(value);
+    if (!searchTerm) return [];
+
+    return teacherOptions
+      .filter((teacher) => {
+        const name = normalizeSearchValue(teacher.name);
+        const label = normalizeSearchValue(teacher.label);
+        const code = normalizeSearchValue(teacher.teacherCode);
+        const compactCode = compactSearchValue(teacher.teacherCode);
+        return name.includes(searchTerm)
+          || label.includes(searchTerm)
+          || code.includes(searchTerm)
+          || Boolean(compactSearchTerm && compactCode.includes(compactSearchTerm));
+      })
+      .slice(0, 8);
+  }
+
+  function updateActiveSuggestion(buttons) {
+    buttons.forEach((button, index) => {
+      button.classList.toggle('is-active', index === activeSuggestionIndex);
+    });
+  }
+
+  function hideSuggestions() {
+    if (!suggestionsPanel) return;
+    suggestionsPanel.hidden = true;
+    suggestionsPanel.innerHTML = '';
+    activeSuggestionIndex = -1;
+  }
+
+  function chooseSuggestion(teacher) {
+    teacherSearch.value = teacher.label || teacher.name || '';
+    teacherSelect.value = 'all';
+    hideSuggestions();
+  }
+
+  function renderSuggestions() {
+    if (!suggestionsPanel) return;
+
+    const matches = getMatchingTeachers(teacherSearch.value);
+    suggestionsPanel.innerHTML = '';
+    activeSuggestionIndex = -1;
+
+    if (!matches.length) {
+      hideSuggestions();
+      return;
+    }
+
+    matches.forEach((teacher) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'teacher-suggestion';
+
+      const label = document.createElement('span');
+      label.className = 'teacher-suggestion__name';
+      label.textContent = teacher.label || teacher.name || 'Teacher';
+      button.appendChild(label);
+
+      if (teacher.teacherCode) {
+        const code = document.createElement('span');
+        code.className = 'teacher-suggestion__code';
+        code.textContent = teacher.teacherCode;
+        button.appendChild(code);
+      }
+
+      button.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+      });
+      button.addEventListener('click', () => chooseSuggestion(teacher));
+      suggestionsPanel.appendChild(button);
+    });
+
+    suggestionsPanel.hidden = false;
+  }
 
   teacherSearch.addEventListener('input', () => {
     teacherSelect.value = 'all';
+    renderSuggestions();
+  });
+
+  teacherSearch.addEventListener('focus', () => {
+    renderSuggestions();
+  });
+
+  teacherSearch.addEventListener('keydown', (event) => {
+    if (!suggestionsPanel || suggestionsPanel.hidden) return;
+
+    const buttons = Array.from(suggestionsPanel.querySelectorAll('.teacher-suggestion'));
+    if (!buttons.length) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      activeSuggestionIndex = (activeSuggestionIndex + 1) % buttons.length;
+      updateActiveSuggestion(buttons);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      activeSuggestionIndex = activeSuggestionIndex <= 0 ? buttons.length - 1 : activeSuggestionIndex - 1;
+      updateActiveSuggestion(buttons);
+    } else if (event.key === 'Enter' && activeSuggestionIndex >= 0) {
+      event.preventDefault();
+      buttons[activeSuggestionIndex].click();
+    } else if (event.key === 'Escape') {
+      hideSuggestions();
+    }
+  });
+
+  teacherSearch.addEventListener('blur', () => {
+    window.setTimeout(hideSuggestions, 120);
+  });
+
+  teacherSelect.addEventListener('change', () => {
+    teacherSearch.value = '';
+    hideSuggestions();
   });
 })();

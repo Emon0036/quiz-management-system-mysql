@@ -7,8 +7,7 @@ const Problem = require('../models/Problem');
 const Submission = require('../models/Submission');
 const User = require('../models/User');
 const { getQuizAttemptLimit, hasReachedAttemptLimit } = require('../utils/attemptLimits');
-
-const TEACHER_OPTION_LIMIT = 80;
+const { formatTeacherName } = require('../utils/teacherCode');
 
 function normalizeCategory(category) {
   const value = String(category || '').trim();
@@ -27,27 +26,44 @@ function normalizeSearchText(value) {
   return String(value || '').trim().toLowerCase();
 }
 
-function teacherMatchesSearch(teacher, searchTerm) {
-  if (!searchTerm) return true;
-  return normalizeSearchText(teacher.name).includes(searchTerm);
+function compactSearchText(value) {
+  return normalizeSearchText(value).replace(/[^a-z0-9]/g, '');
 }
 
-function limitTeacherOptions(teachers, selectedTeacherId, teacherSearch) {
+function teacherMatchesSearch(teacher, searchTerm) {
+  if (!searchTerm) return true;
+  const compactSearchTerm = compactSearchText(searchTerm);
+  const teacherLabel = normalizeSearchText(teacher.label || formatTeacherName(teacher));
+  const teacherCode = normalizeSearchText(teacher.teacherCode);
+  const compactTeacherCode = compactSearchText(teacherCode);
+  return normalizeSearchText(teacher.name).includes(searchTerm)
+    || teacherLabel.includes(searchTerm)
+    || teacherCode.includes(searchTerm)
+    || Boolean(compactTeacherCode && (
+      compactTeacherCode.includes(compactSearchTerm) ||
+      compactSearchTerm.includes(compactTeacherCode)
+    ));
+}
+
+function resolveTeacherSearch(teachers, teacherSearch) {
   const searchTerm = normalizeSearchText(teacherSearch);
-  const selectedTeacher = teachers.find((teacher) => teacher.id === selectedTeacherId) || null;
+  if (!searchTerm) return { teacher: null, matches: [] };
+
   const matches = teachers.filter((teacher) => teacherMatchesSearch(teacher, searchTerm));
-  const limited = matches.slice(0, TEACHER_OPTION_LIMIT);
+  const compactSearchTerm = compactSearchText(searchTerm);
+  const exactCodeMatches = matches.filter((teacher) => {
+    const compactCode = compactSearchText(teacher.teacherCode);
+    return compactCode && (compactCode === compactSearchTerm || compactSearchTerm.includes(compactCode));
+  });
+  if (exactCodeMatches.length === 1) return { teacher: exactCodeMatches[0], matches };
 
-  if (selectedTeacher && !limited.some((teacher) => teacher.id === selectedTeacher.id)) {
-    limited.unshift(selectedTeacher);
-  }
+  const exactLabelMatches = matches.filter((teacher) => (
+    normalizeSearchText(teacher.label) === searchTerm ||
+    normalizeSearchText(teacher.name) === searchTerm
+  ));
+  if (exactLabelMatches.length === 1) return { teacher: exactLabelMatches[0], matches };
 
-  return {
-    selectedTeacher,
-    teacherOptions: limited,
-    teacherSearchResultCount: matches.length,
-    teacherOptionsTotal: teachers.length,
-  };
+  return { teacher: matches.length === 1 ? matches[0] : null, matches };
 }
 
 function buildCategoryGroups(items, getCategory) {
@@ -95,34 +111,66 @@ exports.browseQuizzes = async (req, res) => {
     const selectedCategory = String(req.query.category || 'all');
     const selectedDifficulty = String(req.query.difficulty || '');
     const selectedType = String(req.query.type || 'all');
-    const selectedTeacherId = String(req.query.teacher || 'all');
+    const requestedTeacherId = String(req.query.teacher || 'all');
     const teacherSearch = String(req.query.teacherSearch || '').trim();
-    
+
+    const activeTeachers = await User.find({
+      role: 'teacher',
+      teacherStatus: 'approved',
+      accountStatus: 'active',
+    });
+    const allTeacherOptions = activeTeachers
+      .map((teacher) => ({
+        id: String(teacher._id),
+        name: String(teacher.name || 'Teacher').trim() || 'Teacher',
+        teacherCode: String(teacher.teacherCode || '').trim(),
+        label: formatTeacherName(teacher),
+      }))
+      .sort((left, right) => sortByDisplayName(left.name, right.name) || sortByDisplayName(left.teacherCode, right.teacherCode));
+
+    let selectedTeacher = requestedTeacherId !== 'all'
+      ? allTeacherOptions.find((teacher) => teacher.id === requestedTeacherId) || null
+      : null;
+    let teacherSearchStatus = '';
+    let teacherSearchMatchCount = 0;
+
+    if (teacherSearch) {
+      const searchResult = resolveTeacherSearch(allTeacherOptions, teacherSearch);
+      selectedTeacher = searchResult.teacher;
+      teacherSearchMatchCount = searchResult.matches.length;
+      if (!selectedTeacher) {
+        teacherSearchStatus = searchResult.matches.length > 1 ? 'multiple' : 'none';
+      }
+    }
+
+    const effectiveTeacherId = selectedTeacher
+      ? selectedTeacher.id
+      : requestedTeacherId !== 'all' && !teacherSearch
+        ? requestedTeacherId
+        : 'all';
+    const forceNoTeacherResults = Boolean(teacherSearch && !selectedTeacher);
+
     const filter = { status: 'published' };
     if (selectedCategory !== 'all') {
       filter.category = selectedCategory;
     }
     if (selectedDifficulty) filter.difficulty = selectedDifficulty;
     if (selectedType !== 'all') filter.examType = selectedType;
-    if (selectedTeacherId !== 'all') filter.createdBy = selectedTeacherId;
+    if (forceNoTeacherResults) filter.createdBy = '__no_teacher_match__';
+    else if (effectiveTeacherId !== 'all') filter.createdBy = effectiveTeacherId;
 
     const teacherAwareCategoryFilter = { status: 'published' };
-    if (selectedTeacherId !== 'all') teacherAwareCategoryFilter.createdBy = selectedTeacherId;
+    if (forceNoTeacherResults) teacherAwareCategoryFilter.createdBy = '__no_teacher_match__';
+    else if (effectiveTeacherId !== 'all') teacherAwareCategoryFilter.createdBy = effectiveTeacherId;
     if (selectedDifficulty) teacherAwareCategoryFilter.difficulty = selectedDifficulty;
     if (selectedType !== 'all') teacherAwareCategoryFilter.examType = selectedType;
 
-    const teacherSourceFilter = { status: 'published' };
-    if (selectedCategory !== 'all') teacherSourceFilter.category = selectedCategory;
-    if (selectedDifficulty) teacherSourceFilter.difficulty = selectedDifficulty;
-    if (selectedType !== 'all') teacherSourceFilter.examType = selectedType;
-
-    const [quizzes, enrollments, rawCategories, teacherSourceIds] = await Promise.all([
+    const [quizzes, enrollments, rawCategories] = await Promise.all([
       Quiz.find(filter)
-        .populate('createdBy', 'name')
+        .populate('createdBy', 'name teacherCode')
         .sort('-createdAt'),
       Enrollment.find({ student: req.user._id }),
       Quiz.distinct('category', teacherAwareCategoryFilter),
-      Quiz.distinct('createdBy', teacherSourceFilter),
     ]);
 
     const groupedQuizzes = buildCategoryGroups(
@@ -145,44 +193,20 @@ exports.browseQuizzes = async (req, res) => {
       .map((category) => normalizeCategory(category))
       .sort(sortByCategoryName);
 
-    const sourceTeacherIds = Array.from(new Set((teacherSourceIds || []).map(String).filter(Boolean)));
-    const sourceTeachers = sourceTeacherIds.length
-      ? await User.find({
-          _id: { $in: sourceTeacherIds },
-          role: 'teacher',
-          teacherStatus: 'approved',
-          accountStatus: 'active',
-        })
-      : [];
-    const allTeacherOptions = sourceTeachers
-      .map((teacher) => ({
-        id: String(teacher._id),
-        name: String(teacher.name || 'Teacher').trim() || 'Teacher',
-      }))
-      .sort((left, right) => sortByDisplayName(left.name, right.name));
-
-    const {
-      selectedTeacher,
-      teacherOptions,
-      teacherSearchResultCount,
-      teacherOptionsTotal,
-    } = limitTeacherOptions(allTeacherOptions, selectedTeacherId, teacherSearch);
-
     res.render('student/quizzes', {
       title: 'Browse Exams',
       quizzes,
       groupedQuizzes,
       categories,
-      teacherOptions,
+      teacherOptions: allTeacherOptions,
       teacherSearch,
-      teacherSearchResultCount,
-      teacherOptionsTotal,
-      teacherOptionsLimit: TEACHER_OPTION_LIMIT,
+      teacherSearchStatus,
+      teacherSearchMatchCount,
       selectedCategory,
       selectedDifficulty,
       selectedType,
-      selectedTeacherId,
-      selectedTeacherName: selectedTeacher ? selectedTeacher.name : '',
+      selectedTeacherId: effectiveTeacherId,
+      selectedTeacherName: selectedTeacher ? selectedTeacher.label : '',
       enrolledQuizIds,
       enrollmentByQuizId,
       query: req.query,
@@ -330,7 +354,7 @@ exports.getEnrolledQuizzes = async (req, res) => {
               path: 'quiz',
               match: { status: 'published' },
               select: 'title category examType difficulty duration totalMarks passingMarks maxAttempts thumbnailUrl',
-              populate: { path: 'createdBy', select: 'name' },
+              populate: { path: 'createdBy', select: 'name teacherCode' },
             })
             .populate({ path: 'bestAttemptId', select: 'score percentage' })
         : Promise.resolve([]),

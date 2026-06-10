@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { DataTypes, Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
+const { createTeacherCode, normalizeTeacherCode } = require('../../utils/teacherCode');
 
 const adapters = {};
 
@@ -492,6 +493,12 @@ class ModelAdapter {
     if (this.name === 'User') {
       if (doc.email) doc.email = String(doc.email).toLowerCase().trim();
       if (doc.name) doc.name = String(doc.name).trim();
+      if (doc.role === 'teacher') {
+        doc.teacherCode = normalizeTeacherCode(doc.teacherCode);
+        if (!doc.teacherCode) {
+          doc.teacherCode = await this.generateUniqueTeacherCode(doc);
+        }
+      }
     }
 
     if (this.name === 'User' && doc.password) {
@@ -520,6 +527,16 @@ class ModelAdapter {
 
   findById(id) {
     return this.findOne({ _id: id });
+  }
+
+  async generateUniqueTeacherCode(doc) {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const teacherCode = createTeacherCode();
+      const existing = await this.model.findOne({ where: { teacherCode } });
+      if (!existing || String(existing.id) === String(doc._id || doc.id)) return teacherCode;
+    }
+
+    return createTeacherCode(8);
   }
 
   async findDocuments(filter = {}, options = {}) {
@@ -781,6 +798,7 @@ defineModel(
     email: { type: DataTypes.STRING(255), allowNull: false, unique: true },
     password: { type: DataTypes.STRING(255), allowNull: true },
     role: { type: DataTypes.ENUM('admin', 'teacher', 'student'), allowNull: false, defaultValue: 'student' },
+    teacherCode: { type: DataTypes.STRING(32), allowNull: true },
     teacherStatus: {
       type: DataTypes.ENUM('none', 'pending', 'approved', 'rejected'),
       allowNull: false,

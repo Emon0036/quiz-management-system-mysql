@@ -7,14 +7,40 @@
     <% const currentDifficulty = selectedDifficulty || query.difficulty || ''; %>
     <% const currentTeacherId = selectedTeacherId || query.teacher || 'all'; %>
     <% const currentTeacherSearch = typeof teacherSearch !== 'undefined' ? teacherSearch : (query.teacherSearch || ''); %>
+    <% const currentTeacherSearchStatus = typeof teacherSearchStatus !== 'undefined' ? teacherSearchStatus : ''; %>
+    <% const currentTeacherSearchMatchCount = typeof teacherSearchMatchCount !== 'undefined' ? teacherSearchMatchCount : 0; %>
+    <% const currentSelectedTeacherName = typeof selectedTeacherName !== 'undefined' ? selectedTeacherName : ''; %>
+    <% const teacherDisplayName = (teacher) => {
+      const name = String(teacher?.name || 'Teacher').trim() || 'Teacher';
+      const code = String(teacher?.teacherCode || '').trim();
+      return code ? `${name} (${code})` : name;
+    }; %>
+    <% const controllerTeacherOptions = typeof teacherOptions !== 'undefined' && Array.isArray(teacherOptions) ? teacherOptions : []; %>
+    <% const quizTeacherOptions = new Map(); %>
+    <% (quizzes || []).forEach((quiz) => {
+      const teacher = quiz?.createdBy;
+      const id = String(teacher?._id || teacher?.id || '');
+      if (!id || quizTeacherOptions.has(id)) return;
+      const name = String(teacher?.name || 'Teacher').trim() || 'Teacher';
+      const teacherCode = String(teacher?.teacherCode || '').trim();
+      quizTeacherOptions.set(id, { id, name, teacherCode, label: teacherDisplayName(teacher) });
+    }); %>
+    <% const teacherOptionsList = (controllerTeacherOptions.length ? controllerTeacherOptions : Array.from(quizTeacherOptions.values()))
+      .slice()
+      .sort((left, right) => String(left.name || '').localeCompare(String(right.name || ''), undefined, { sensitivity: 'base' })); %>
+    <% const teacherSuggestionPayload = teacherOptionsList.map((teacher) => ({
+      id: teacher.id,
+      name: teacher.name || 'Teacher',
+      teacherCode: teacher.teacherCode || '',
+      label: teacher.label || teacher.name || 'Teacher',
+    })); %>
     <% const teacherSearchPart = currentTeacherSearch ? `&teacherSearch=${encodeURIComponent(currentTeacherSearch)}` : ''; %>
     <% const buildCategoryLink = (categoryValue) => `/enrollments/browse?type=${encodeURIComponent(currentType)}&teacher=${encodeURIComponent(currentTeacherId)}&category=${encodeURIComponent(categoryValue)}${currentDifficulty ? `&difficulty=${encodeURIComponent(currentDifficulty)}` : ''}${teacherSearchPart}`; %>
-    <% const buildTeacherLink = (teacherValue) => `/enrollments/browse?type=${encodeURIComponent(currentType)}&teacher=${encodeURIComponent(teacherValue)}&category=all${currentDifficulty ? `&difficulty=${encodeURIComponent(currentDifficulty)}` : ''}${teacherSearchPart}`; %>
     <div class="page-heading">
       <div>
         <span class="eyebrow">Student</span>
         <h1>Browse Exams</h1>
-        <p>Choose a teacher first, then browse only the exams that teacher created so the attempt list stays focused and easier to understand.</p>
+        <p>Search a teacher by name or Teacher ID, then filter to see that teacher's published exams.</p>
       </div>
       <div class="toolbar">
         <a href="/enrollments/my-quizzes" class="btn btn-primary">My Exams</a>
@@ -30,9 +56,9 @@
         <option value="coding-test" <%= (selectedType || query.type) === 'coding-test' ? 'selected' : '' %>>Coding Exam</option>
       </select>
       <select class="form-select" name="teacher" data-teacher-select>
-        <option value="all" <%= (selectedTeacherId || query.teacher || 'all') === 'all' ? 'selected' : '' %>>All teachers</option>
-        <% (teacherOptions || []).forEach((teacher) => { %>
-          <option value="<%= teacher.id %>" <%= (selectedTeacherId || query.teacher) === teacher.id ? 'selected' : '' %>><%= teacher.name %></option>
+        <option value="all" <%= currentTeacherId === 'all' ? 'selected' : '' %>>All teachers</option>
+        <% teacherOptionsList.forEach((teacher) => { %>
+          <option value="<%= teacher.id %>" <%= currentTeacherId === teacher.id ? 'selected' : '' %>><%= teacher.label || teacher.name %></option>
         <% }) %>
       </select>
       <div class="search-control">
@@ -43,10 +69,12 @@
           class="form-control"
           name="teacherSearch"
           value="<%= currentTeacherSearch %>"
-          placeholder="Search teacher name"
+          placeholder="Search teacher name or ID"
           autocomplete="off"
           data-teacher-search
         >
+        <div class="teacher-suggestions" data-teacher-suggestions hidden></div>
+        <script type="application/json" data-teacher-options-json><%- JSON.stringify(teacherSuggestionPayload).replace(/</g, '\\u003c') %></script>
       </div>
       <select class="form-select" name="category">
         <option value="all" <%= (selectedCategory || query.category || 'all') === 'all' ? 'selected' : '' %>>All categories</option>
@@ -66,26 +94,18 @@
       </button>
     </form>
 
-    <% if ((teacherOptions || []).length > 0) { %>
-      <div class="teacher-filter-row">
-        <div class="chip-group teacher-chip-group">
-          <a class="filter-chip <%= (selectedTeacherId || query.teacher || 'all') === 'all' ? 'is-active' : '' %>" href="<%= buildTeacherLink('all') %>">All teachers</a>
-          <% teacherOptions.forEach((teacher) => { %>
-            <a class="filter-chip <%= (selectedTeacherId || query.teacher) === teacher.id ? 'is-active' : '' %>" href="<%= buildTeacherLink(teacher.id) %>"><%= teacher.name %></a>
-          <% }) %>
-        </div>
-        <% if (typeof teacherOptionsTotal !== 'undefined' && teacherOptionsTotal > (teacherOptions || []).length) { %>
-          <p class="filter-summary">
-            <%= currentTeacherSearch ? 'Matches' : 'Teachers' %>:
-            <%= teacherSearchResultCount || 0 %>/<%= teacherOptionsTotal %>
-          </p>
-        <% } %>
-      </div>
-    <% } else if (currentTeacherSearch) { %>
+    <% if (currentTeacherSearchStatus === 'none') { %>
       <div class="empty-state empty-state--compact">
         <h3>No teacher matched "<%= currentTeacherSearch %>"</h3>
         <a class="btn btn-outline-primary btn-sm" href="/enrollments/browse?type=<%= encodeURIComponent(currentType) %>&teacher=all&category=all<%= currentDifficulty ? `&difficulty=${encodeURIComponent(currentDifficulty)}` : '' %>">Clear teacher search</a>
       </div>
+    <% } else if (currentTeacherSearchStatus === 'multiple') { %>
+      <div class="empty-state empty-state--compact">
+        <h3><%= currentTeacherSearchMatchCount || 0 %> teachers matched "<%= currentTeacherSearch %>"</h3>
+        <p>Search with the Teacher ID to choose one exact teacher.</p>
+      </div>
+    <% } else if (currentSelectedTeacherName) { %>
+      <p class="filter-summary">Teacher filter: <strong><%= currentSelectedTeacherName %></strong></p>
     <% } %>
 
     <% if ((categories || []).length > 0) { %>
@@ -111,8 +131,8 @@
               <h2><%= group.category %></h2>
               <p>
                 <%= group.quizzes.length %> published exam<%= group.quizzes.length === 1 ? '' : 's' %> available
-                <% if (selectedTeacherName) { %>
-                  from <strong><%= selectedTeacherName %></strong>
+                <% if (currentSelectedTeacherName) { %>
+                  from <strong><%= currentSelectedTeacherName %></strong>
                 <% } else { %>
                   in this subject
                 <% } %>.
@@ -154,9 +174,9 @@
                   <span>
                     <i class="fas fa-user-tie me-2"></i>
                     <% if (quiz.createdBy?._id) { %>
-                      <a class="teacher-profile-link" href="/student/teachers/<%= quiz.createdBy._id %>/profile"><%= quiz.createdBy.name || 'Teacher' %></a>
+                      <a class="teacher-profile-link" href="/student/teachers/<%= quiz.createdBy._id %>/profile"><%= teacherDisplayName(quiz.createdBy) %></a>
                     <% } else { %>
-                      <%= quiz.createdBy?.name || 'Teacher' %>
+                      <%= teacherDisplayName(quiz.createdBy) %>
                     <% } %>
                   </span>
                 </div>

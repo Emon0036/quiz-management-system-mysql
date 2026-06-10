@@ -29,6 +29,7 @@
             <td>
               <% if (user.role === 'teacher') { %>
                 <strong><%= user.department || 'No department' %></strong>
+                <div class="small text-muted">Teacher ID: <%= user.teacherCode || '-' %></div>
                 <div class="small text-muted"><%= user.institution || user.designation || 'Profile incomplete' %></div>
               <% } else { %>
                 <span class="text-muted"><%= user.studentId || user.department || 'Student profile' %></span>

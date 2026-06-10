@@ -235,14 +235,12 @@ async function importRosterRowsForQuiz({ quiz, teacherId, rows }) {
     map.get(studentId).push(entry);
     return map;
   }, new Map());
-  const uploadedStudentIds = new Set();
   let importedCount = 0;
 
   for (const row of rows) {
     const studentId = normalizeStudentId(row.studentId);
     const section = normalizeSection(row.section);
     const entryKey = rosterEntryKey(studentId, section);
-    uploadedStudentIds.add(entryKey);
     let entry = existingByStudentId.get(entryKey);
     if (!entry && section) {
       const sameStudentEntries = existingByPlainStudentId.get(studentId) || [];
@@ -275,12 +273,7 @@ async function importRosterRowsForQuiz({ quiz, teacherId, rows }) {
     importedCount += 1;
   }
 
-  const staleEntries = existingEntries.filter((entry) => !uploadedStudentIds.has(rosterEntryKey(entry.studentId, entry.section)));
-  for (const entry of staleEntries) {
-    await ExamRosterEntry.deleteOne({ _id: entry._id });
-  }
-
-  return { importedCount, removedCount: staleEntries.length };
+  return { importedCount, removedCount: 0 };
 }
 
 async function getTeacherProfileStats(teacherId) {

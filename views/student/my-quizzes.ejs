@@ -7,6 +7,11 @@
     <% const currentCategory = selectedCategory || 'all'; %>
     <% const totalCount = categorySections.reduce((sum, group) => sum + (group.enrollments?.length || 0), 0); %>
     <% const codingProblemCount = (codingProblems || []).length; %>
+    <% const teacherDisplayName = (teacher) => {
+      const name = String(teacher?.name || 'Teacher').trim() || 'Teacher';
+      const code = String(teacher?.teacherCode || '').trim();
+      return code ? `${name} (${code})` : name;
+    }; %>
     <% const buildTypeLink = (typeValue) => `/enrollments/my-quizzes?type=${encodeURIComponent(typeValue)}&category=${encodeURIComponent(currentCategory)}`; %>
     <% const buildCategoryLink = (categoryValue) => `/enrollments/my-quizzes?type=${encodeURIComponent(currentType)}&category=${encodeURIComponent(categoryValue)}`; %>
 
@@ -87,9 +92,9 @@
                         <div class="small text-muted">
                           <%= enrollment.quiz.duration %> min &middot; <%= enrollment.quiz.totalMarks %> marks &middot; Pass <%= enrollment.quiz.passingMarks %>% &middot;
                           <% if (enrollment.quiz.createdBy?._id) { %>
-                            <a class="teacher-profile-link" href="/student/teachers/<%= enrollment.quiz.createdBy._id %>/profile"><%= enrollment.quiz.createdBy.name || 'Teacher' %></a>
+                            <a class="teacher-profile-link" href="/student/teachers/<%= enrollment.quiz.createdBy._id %>/profile"><%= teacherDisplayName(enrollment.quiz.createdBy) %></a>
                           <% } else { %>
-                            <%= enrollment.quiz.createdBy?.name || 'Teacher' %>
+                            <%= teacherDisplayName(enrollment.quiz.createdBy) %>
                           <% } %>
                           <span class="d-block"><%= attemptLimit %> attempts/purchase</span>
                         </div>

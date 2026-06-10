@@ -20,6 +20,9 @@
           <div class="profile-chip-row">
             <span class="status-pill approved"><i class="fas fa-building-columns"></i> <%= teacher.department || 'Department not added' %></span>
             <span class="status-pill pending"><i class="fas fa-briefcase"></i> <%= teacher.designation || 'Teacher' %></span>
+            <% if (teacher.teacherCode) { %>
+              <span class="status-pill approved"><i class="fas fa-id-badge"></i> <%= teacher.teacherCode %></span>
+            <% } %>
           </div>
         </div>
       </div>
@@ -73,6 +76,7 @@
           </div>
         </div>
         <div class="profile-detail-grid">
+          <div><span>Teacher ID</span><strong><%= teacher.teacherCode || '-' %></strong></div>
           <div><span>Email</span><strong><%= teacher.email %></strong></div>
           <div><span>Institution</span><strong><%= teacher.institution || '-' %></strong></div>
           <div><span>Department</span><strong><%= teacher.department || '-' %></strong></div>

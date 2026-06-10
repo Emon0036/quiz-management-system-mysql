@@ -1,5 +1,6 @@
 const mysql = require('mysql2/promise');
 const { Sequelize, DataTypes } = require('sequelize');
+const { createTeacherCode } = require('../utils/teacherCode');
 
 const databaseConfig = {
   host: process.env.DB_HOST || '127.0.0.1',
@@ -43,8 +44,55 @@ async function ensureColumn(tableName, columnName, definition) {
   }
 }
 
+async function ensureIndex(tableName, indexName, fields, options = {}) {
+  const queryInterface = sequelize.getQueryInterface();
+  const indexes = await queryInterface.showIndex(tableName);
+  const existingIndex = indexes.find((index) => {
+    const indexFields = Array.isArray(index.fields)
+      ? index.fields.map((field) => field.attribute || field.name)
+      : [index.columnName].filter(Boolean);
+    const isSameName = index.name === indexName;
+    const isSameFields = indexFields.length === fields.length && indexFields.every((field, index) => field === fields[index]);
+    const isUnique = index.unique === true || index.nonUnique === false || index.Non_unique === 0;
+    return isSameName || (isSameFields && (!options.unique || isUnique));
+  });
+
+  if (!existingIndex) {
+    await queryInterface.addIndex(tableName, fields, { name: indexName, unique: Boolean(options.unique) });
+  }
+}
+
+async function teacherCodeExists(teacherCode) {
+  const [rows] = await sequelize.query('SELECT `id` FROM `users` WHERE `teacherCode` = ? LIMIT 1', {
+    replacements: [teacherCode],
+  });
+  return rows.length > 0;
+}
+
+async function nextUniqueTeacherCode() {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const teacherCode = createTeacherCode();
+    if (!(await teacherCodeExists(teacherCode))) return teacherCode;
+  }
+
+  return createTeacherCode(8);
+}
+
+async function backfillTeacherCodes() {
+  const [teachers] = await sequelize.query(
+    'SELECT `id` FROM `users` WHERE `role` = "teacher" AND (`teacherCode` IS NULL OR `teacherCode` = "")'
+  );
+
+  for (const teacher of teachers) {
+    await sequelize.query('UPDATE `users` SET `teacherCode` = ? WHERE `id` = ?', {
+      replacements: [await nextUniqueTeacherCode(), teacher.id],
+    });
+  }
+}
+
 async function ensureApplicationColumns() {
   const userProfileColumns = [
+    ['teacherCode', { type: DataTypes.STRING(32), allowNull: true }],
     ['department', { type: DataTypes.STRING(150), allowNull: false, defaultValue: '' }],
     ['institution', { type: DataTypes.STRING(180), allowNull: false, defaultValue: '' }],
     ['designation', { type: DataTypes.STRING(120), allowNull: false, defaultValue: '' }],
@@ -98,6 +146,9 @@ async function ensureApplicationColumns() {
   await sequelize.query('UPDATE `users` SET `batch` = "" WHERE `batch` IS NULL');
   await sequelize.query('UPDATE `users` SET `officeLocation` = "" WHERE `officeLocation` IS NULL');
   await sequelize.query('UPDATE `users` SET `officeHours` = "" WHERE `officeHours` IS NULL');
+  await sequelize.query('UPDATE `users` SET `teacherCode` = NULL WHERE `teacherCode` = ""');
+  await backfillTeacherCodes();
+  await ensureIndex('users', 'users_teacher_code_unique', ['teacherCode'], { unique: true });
 }
 
 async function backfillAttemptNumbers() {

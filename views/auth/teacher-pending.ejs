@@ -11,6 +11,10 @@
     <% } %>
     <div class="profile-detail-grid profile-detail-grid--compact text-start mb-4">
       <div>
+        <span>Teacher ID</span>
+        <strong><%= currentUser.teacherCode || 'Pending assignment' %></strong>
+      </div>
+      <div>
         <span>Department</span>
         <strong><%= currentUser.department || 'Not provided' %></strong>
       </div>
