@@ -1,441 +1,241 @@
 <% layout('layouts/main') %>
-<% const previewQuiz = featuredQuizzes && featuredQuizzes.length ? featuredQuizzes[0] : null; %>
+<%
+  const quizzes = Array.isArray(featuredQuizzes) ? featuredQuizzes : [];
+  const previewQuiz = quizzes[0] || null;
+  const examTypeLabels = {
+    quiz: 'Mixed quiz',
+    'true-false': 'True/False',
+    'short-answer': 'Short answer',
+    'coding-test': 'Coding exam',
+  };
+  const roleCards = [
+    {
+      icon: 'fa-user-graduate',
+      title: 'Students',
+      copy: 'Find exams, submit attempts, review feedback, and track progress from one workspace.',
+      action: 'Join as student',
+      href: '/auth/register',
+    },
+    {
+      icon: 'fa-chalkboard-user',
+      title: 'Teachers',
+      copy: 'Create exams, upload student sheets, publish quizzes, and review written or coding answers.',
+      action: 'Request access',
+      href: '/auth/register?role=teacher',
+    },
+    {
+      icon: 'fa-user-shield',
+      title: 'Admins',
+      copy: 'Approve teachers, manage users, and keep the platform organized for the institution.',
+      action: 'Admin setup',
+      href: '/admin/setup',
+    },
+  ];
+  const workflowSteps = [
+    ['Create', 'Teachers prepare exams and attach student rosters when needed.'],
+    ['Attempt', 'Students enroll, verify their ID, and submit within the allowed attempts.'],
+    ['Review', 'Auto scores publish quickly, while manual answers wait for teacher review.'],
+  ];
+%>
 
-<!-- Hero Section -->
-<section class="hero-gradient relative overflow-hidden">
-  <div class="absolute inset-0 bg-gradient-to-br from-brand-600/10 via-transparent to-accent-600/10"></div>
-  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
-    <div class="grid lg:grid-cols-2 gap-12 items-center">
-      <div class="animate-fade-in">
-        <div class="inline-flex items-center px-4 py-2 rounded-full bg-brand-100 text-brand-800 text-sm font-medium mb-6">
-          <i class="fas fa-layer-group text-brand-600 mr-2"></i>
-          Role-based quiz workspace
+<section class="landing-page">
+  <section class="landing-hero" aria-labelledby="landing-title">
+    <div class="landing-hero__scene" aria-hidden="true">
+      <div class="landing-screen">
+        <div class="landing-screen__topbar">
+          <span></span>
+          <span></span>
+          <span></span>
         </div>
-        <h1 class="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-          Create and manage
-          <span class="text-gradient">quizzes in one place</span>
-        </h1>
-        <p class="text-xl text-gray-600 mb-8 leading-relaxed">
-          Teachers can build and publish exams, students can enroll and attempt quizzes, and administrators can manage access and approvals from one shared system.
+        <div class="landing-screen__body">
+          <div class="landing-screen__sidebar">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="landing-screen__content">
+            <div class="landing-screen__header">
+              <strong><%= previewQuiz ? previewQuiz.title : 'Database Management Quiz' %></strong>
+              <small><%= previewQuiz ? `${previewQuiz.totalMarks || 0} marks` : '45 marks' %></small>
+            </div>
+            <div class="landing-screen__chart">
+              <span style="height: 56%"></span>
+              <span style="height: 78%"></span>
+              <span style="height: 42%"></span>
+              <span style="height: 88%"></span>
+              <span style="height: 64%"></span>
+            </div>
+            <div class="landing-screen__rows">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="landing-floating landing-floating--score">
+        <i class="fas fa-chart-line"></i>
+        <span>Live progress</span>
+        <strong>92%</strong>
+      </div>
+      <div class="landing-floating landing-floating--review">
+        <i class="fas fa-clipboard-check"></i>
+        <span>Pending review</span>
+        <strong>12</strong>
+      </div>
+    </div>
+
+    <div class="page-container landing-hero__copy">
+      <span class="landing-kicker"><i class="fas fa-layer-group"></i> Online quiz management system</span>
+      <h1 id="landing-title"><%= appName %></h1>
+      <p>
+        A clean workspace where teachers create exams, students complete attempts, and admins manage access without switching tools.
+      </p>
+      <div class="landing-actions">
+        <a href="/auth/register" class="btn btn-primary">
+          <i class="fas fa-user-plus"></i>
+          Create account
+        </a>
+        <a href="/features" class="btn btn-secondary">
+          <i class="fas fa-list-check"></i>
+          View features
+        </a>
+      </div>
+      <div class="landing-hero__facts" aria-label="Platform highlights">
+        <span><strong>3</strong> roles</span>
+        <span><strong>4</strong> exam types</span>
+        <span><strong><%= quizzes.length %></strong> published exam<%= quizzes.length === 1 ? '' : 's' %></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-container landing-section landing-section--pull">
+    <div class="landing-section__intro">
+      <span class="landing-kicker">Workspaces</span>
+      <h2>Everything is organized by role.</h2>
+      <p>Each user sees the tools they need, so the system stays simple for daily class work.</p>
+    </div>
+
+    <div class="landing-role-grid">
+      <% roleCards.forEach((role) => { %>
+        <article class="landing-role-card">
+          <div class="landing-role-card__icon"><i class="fas <%= role.icon %>"></i></div>
+          <h3><%= role.title %></h3>
+          <p><%= role.copy %></p>
+          <a href="<%= role.href %>">
+            <span><%= role.action %></span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="landing-band">
+    <div class="page-container landing-flow">
+      <div class="landing-section__intro">
+        <span class="landing-kicker">Flow</span>
+        <h2>From exam setup to final marks.</h2>
+      </div>
+
+      <div class="landing-flow__steps">
+        <% workflowSteps.forEach((step, index) => { %>
+          <article class="landing-flow-step">
+            <span><%= index + 1 %></span>
+            <h3><%= step[0] %></h3>
+            <p><%= step[1] %></p>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-container landing-section">
+    <div class="landing-section__intro landing-section__intro--split">
+      <div>
+        <span class="landing-kicker">Published exams</span>
+        <h2>Students can start from a clear exam list.</h2>
+      </div>
+      <p>
+        The homepage can show real published quizzes, including teacher, duration, difficulty, marks, and exam type.
+      </p>
+    </div>
+
+    <% if (quizzes.length) { %>
+      <div class="landing-quiz-grid">
+        <% quizzes.slice(0, 3).forEach((quiz) => { %>
+          <article class="landing-quiz-card">
+            <% if (quiz.thumbnailUrl) { %>
+              <img src="<%= quiz.thumbnailUrl %>" alt="<%= quiz.title %> thumbnail" loading="lazy">
+            <% } else { %>
+              <div class="landing-quiz-card__placeholder" aria-hidden="true">
+                <i class="fas fa-file-lines"></i>
+              </div>
+            <% } %>
+            <div class="landing-quiz-card__body">
+              <span><%= examTypeLabels[quiz.examType || 'quiz'] || 'Exam' %></span>
+              <h3><%= quiz.title %></h3>
+              <p><%= quiz.description || 'No description added yet.' %></p>
+              <div class="landing-quiz-card__meta">
+                <small><i class="fas fa-clock"></i> <%= quiz.duration || 0 %> min</small>
+                <small><i class="fas fa-layer-group"></i> <%= quiz.totalMarks || 0 %> marks</small>
+                <small><i class="fas fa-user-tie"></i> <%= quiz.createdBy?.name || 'Teacher' %></small>
+              </div>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="landing-empty-preview">
+        <i class="fas fa-book-open"></i>
+        <div>
+          <h3>No published exams yet.</h3>
+          <p>Create and publish a quiz as a teacher, then it will appear here for students.</p>
+        </div>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="page-container landing-section">
+    <div class="landing-panel">
+      <div>
+        <span class="landing-kicker">Built-in coverage</span>
+        <h2>Quiz, roster, review, and ranking tools in one place.</h2>
+        <p>
+          The landing page now matches what the system actually does, so new users understand where to go next.
         </p>
-        <div class="flex flex-col sm:flex-row gap-4">
-          <a href="/auth/register" class="btn-primary text-center px-8 py-4 text-lg">
-            <i class="fas fa-user-plus mr-2"></i>
-            Create Account
-          </a>
-          <a href="/features" class="btn-secondary text-center px-8 py-4 text-lg">
-            <i class="fas fa-list-check mr-2"></i>
-            View Features
-          </a>
-        </div>
-        <div class="flex items-center gap-8 mt-8 text-sm text-gray-500">
-          <div class="flex items-center gap-2">
-            <i class="fas fa-check text-green-500"></i>
-            <span>Student signup is available</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <i class="fas fa-check text-green-500"></i>
-            <span>Teacher access requires approval</span>
-          </div>
-        </div>
       </div>
-
-      <div class="relative animate-slide-up">
-        <div class="glass-card p-8">
-          <div class="flex items-start justify-between gap-4 mb-8">
-            <div class="flex items-center gap-4">
-              <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-file-lines text-brand-600 text-xl"></i>
-              </div>
-              <div class="space-y-2">
-                <div class="h-3 w-32 rounded-full bg-gray-200"></div>
-                <div class="h-2 w-44 max-w-full rounded-full bg-gray-100"></div>
-              </div>
-            </div>
-            <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-              <%= previewQuiz ? 'Published' : 'Preview' %>
-            </span>
-          </div>
-
-          <div class="mb-8">
-            <div class="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
-              <span>Enroll</span>
-              <span>Submit</span>
-              <span>Score</span>
-            </div>
-            <div class="relative h-2 rounded-full bg-gray-200 overflow-hidden">
-              <div class="absolute inset-y-0 left-0 w-2/3 rounded-full bg-gradient-to-r from-brand-600 to-accent-600"></div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 divide-x divide-gray-200 border-t border-gray-200 pt-6 text-center">
-            <div>
-              <i class="fas fa-medal text-brand-600 mb-2"></i>
-              <p class="text-sm font-semibold text-gray-700"><%= previewQuiz ? `${previewQuiz.totalMarks} marks` : 'Results' %></p>
-              <p class="text-xs text-gray-400 mt-1">Score tracking</p>
-            </div>
-            <div>
-              <i class="fas fa-trophy text-yellow-600 mb-1"></i>
-              <p class="text-sm font-semibold text-gray-700">Leaderboard</p>
-              <p class="text-xs text-gray-400 mt-1">Rank updates</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="absolute -top-4 -right-4 w-20 h-20 bg-accent-100 rounded-full flex items-center justify-center animate-bounce-subtle">
-          <i class="fas fa-graduation-cap text-accent-600 text-2xl"></i>
-        </div>
-        <div class="absolute -bottom-4 -left-4 w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center animate-bounce-subtle" style="animation-delay: 1s">
-          <i class="fas fa-code text-brand-600 text-xl"></i>
-        </div>
+      <div class="landing-check-grid">
+        <span><i class="fas fa-check"></i> Student enrollment</span>
+        <span><i class="fas fa-check"></i> Teacher approval</span>
+        <span><i class="fas fa-check"></i> Roster upload</span>
+        <span><i class="fas fa-check"></i> Manual review</span>
+        <span><i class="fas fa-check"></i> Leaderboards</span>
+        <span><i class="fas fa-check"></i> Coding problems</span>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- Features Section -->
-<section class="py-24 bg-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-        Core features in the current system
-      </h2>
-      <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-        The platform supports quiz creation, student attempts, manual review, leaderboards, and coding problem workflows.
-      </p>
-    </div>
-
-    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-      <div class="card group hover:scale-105 transition-transform duration-200">
-        <div class="w-12 h-12 bg-brand-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-brand-200 transition-colors">
-          <i class="fas fa-pen-to-square text-brand-600 text-xl"></i>
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">Quiz Builder</h3>
-        <p class="text-gray-600">Create, edit, publish, and manage multiple choice, true/false, short-answer, and coding exams.</p>
+  <section class="landing-cta">
+    <div class="page-container landing-cta__inner">
+      <div>
+        <span class="landing-kicker">Get started</span>
+        <h2>Ready to use <%= appName %>?</h2>
+        <p>
+          Create a student account now, or register as a teacher and wait for admin approval.
+        </p>
       </div>
-
-      <div class="card group hover:scale-105 transition-transform duration-200">
-        <div class="w-12 h-12 bg-accent-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-accent-200 transition-colors">
-          <i class="fas fa-user-graduate text-accent-600 text-xl"></i>
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">Student Workspace</h3>
-        <p class="text-gray-600">Browse exams, enroll, submit attempts, view results, and track history and progress.</p>
-      </div>
-
-      <div class="card group hover:scale-105 transition-transform duration-200">
-        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
-          <i class="fas fa-user-shield text-green-600 text-xl"></i>
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">Role-Based Access</h3>
-        <p class="text-gray-600">Separate dashboards and permissions are available for students, teachers, and administrators.</p>
-      </div>
-
-      <div class="card group hover:scale-105 transition-transform duration-200">
-        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
-          <i class="fas fa-clipboard-check text-purple-600 text-xl"></i>
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">Manual Review</h3>
-        <p class="text-gray-600">Teachers can review short-answer responses and coding submissions before final marks are recorded.</p>
-      </div>
-
-      <div class="card group hover:scale-105 transition-transform duration-200">
-        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-200 transition-colors">
-          <i class="fas fa-trophy text-orange-600 text-xl"></i>
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">Results and Rankings</h3>
-        <p class="text-gray-600">Students can view score history, progress summaries, quiz leaderboards, and the global leaderboard.</p>
-      </div>
-
-      <div class="card group hover:scale-105 transition-transform duration-200">
-        <div class="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-slate-200 transition-colors">
-          <i class="fas fa-code text-slate-700 text-xl"></i>
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">Coding Problems</h3>
-        <p class="text-gray-600">Separate coding challenges can be managed, submitted, reviewed, and reopened from the submission views.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- How It Works Section -->
-<section class="py-24 bg-gray-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-        How it works
-      </h2>
-      <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-        The app supports a straightforward flow for access, exams, and review.
-      </p>
-    </div>
-
-    <div class="grid md:grid-cols-3 gap-8">
-      <div class="text-center">
-        <div class="w-16 h-16 bg-brand-600 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
-          1
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-4">Create Access</h3>
-        <p class="text-gray-600">Students can register directly. Teachers request access and wait for admin approval.</p>
-      </div>
-
-      <div class="text-center">
-        <div class="w-16 h-16 bg-brand-600 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
-          2
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-4">Create or Attempt Exams</h3>
-        <p class="text-gray-600">Teachers publish quizzes and students enroll, take timed exams, and submit answers.</p>
-      </div>
-
-      <div class="text-center">
-        <div class="w-16 h-16 bg-brand-600 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
-          3
-        </div>
-        <h3 class="text-xl font-semibold text-gray-900 mb-4">Review and Track Results</h3>
-        <p class="text-gray-600">Auto-graded results appear immediately, while manual review updates scores, feedback, and rankings later.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Role Showcase Section -->
-<section class="py-24 bg-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-        Built for every role
-      </h2>
-      <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-        Each user type gets a dedicated workspace and permissions that match the current app.
-      </p>
-    </div>
-
-    <div class="grid lg:grid-cols-3 gap-8">
-      <div class="card text-center group hover:scale-105 transition-transform duration-200">
-        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-blue-200 transition-colors">
-          <i class="fas fa-user-graduate text-blue-600 text-3xl"></i>
-        </div>
-        <h3 class="text-2xl font-semibold text-gray-900 mb-4">Students</h3>
-        <ul class="text-left space-y-3 mb-6">
-          <li class="flex items-center gap-3">
-            <i class="fas fa-check text-green-500"></i>
-            <span>Enroll in published exams</span>
-          </li>
-          <li class="flex items-center gap-3">
-            <i class="fas fa-check text-green-500"></i>
-            <span>View results, history, and progress</span>
-          </li>
-          <li class="flex items-center gap-3">
-            <i class="fas fa-check text-green-500"></i>
-            <span>Use quiz and global leaderboards</span>
-          </li>
-        </ul>
-        <a href="/auth/register?role=student" class="btn-primary w-full">
-          Join as Student
+      <div class="landing-actions">
+        <a href="/auth/register" class="btn btn-primary">
+          <i class="fas fa-user-plus"></i>
+          Register
+        </a>
+        <a href="/auth/login" class="btn btn-secondary">
+          <i class="fas fa-right-to-bracket"></i>
+          Sign in
         </a>
       </div>
-
-      <div class="card text-center group hover:scale-105 transition-transform duration-200 border-2 border-brand-200">
-        <div class="w-20 h-20 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-brand-200 transition-colors">
-          <i class="fas fa-chalkboard-teacher text-brand-600 text-3xl"></i>
-        </div>
-        <h3 class="text-2xl font-semibold text-gray-900 mb-4">Teachers</h3>
-        <ul class="text-left space-y-3 mb-6">
-          <li class="flex items-center gap-3">
-            <i class="fas fa-check text-green-500"></i>
-            <span>Create and publish quizzes</span>
-          </li>
-          <li class="flex items-center gap-3">
-            <i class="fas fa-check text-green-500"></i>
-            <span>Review manual submissions and attempts</span>
-          </li>
-          <li class="flex items-center gap-3">
-            <i class="fas fa-check text-green-500"></i>
-            <span>Manage coding problems and quiz records</span>
-          </li>
-        </ul>
-        <a href="/contact" class="bg-brand-600 hover:bg-brand-700 text-white font-medium px-6 py-3 rounded-lg w-full inline-block transition-colors">
-          Request Teacher Access
-        </a>
-      </div>
-
-      <div class="card text-center group hover:scale-105 transition-transform duration-200">
-        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-gray-200 transition-colors">
-          <i class="fas fa-cog text-gray-600 text-3xl"></i>
-        </div>
-        <h3 class="text-2xl font-semibold text-gray-900 mb-4">Administrators</h3>
-        <ul class="text-left space-y-3 mb-6">
-          <li class="flex items-center gap-3">
-            <i class="fas fa-check text-green-500"></i>
-            <span>Approve or reject teacher access</span>
-          </li>
-          <li class="flex items-center gap-3">
-            <i class="fas fa-check text-green-500"></i>
-            <span>View student and teacher user lists</span>
-          </li>
-          <li class="flex items-center gap-3">
-            <i class="fas fa-check text-green-500"></i>
-            <span>Create admin accounts and manage problems</span>
-          </li>
-        </ul>
-        <span class="bg-gray-100 text-gray-600 font-medium px-6 py-3 rounded-lg w-full inline-block">
-          Admin Access Only
-        </span>
-      </div>
     </div>
-  </div>
-</section>
-
-<!-- Stats Section -->
-<section class="py-24 bg-gradient-to-r from-brand-600 to-brand-800 text-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid md:grid-cols-4 gap-8 text-center">
-      <div>
-        <div class="text-4xl font-bold mb-2">3</div>
-        <div class="text-brand-100">User Roles</div>
-      </div>
-      <div>
-        <div class="text-4xl font-bold mb-2">4</div>
-        <div class="text-brand-100">Exam Formats</div>
-      </div>
-      <div>
-        <div class="text-4xl font-bold mb-2">2</div>
-        <div class="text-brand-100">Grading Paths</div>
-      </div>
-      <div>
-        <div class="text-4xl font-bold mb-2">1</div>
-        <div class="text-brand-100">Shared Platform</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Workflow Section -->
-<section class="py-24 bg-gray-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-        Main workflows
-      </h2>
-      <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-        The current project already supports these core user journeys.
-      </p>
-    </div>
-
-    <div class="grid md:grid-cols-3 gap-8">
-      <div class="card">
-        <div class="flex items-center mb-4">
-          <div class="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center mr-4">
-            <span class="font-semibold text-brand-600">ST</span>
-          </div>
-          <div>
-            <div class="font-semibold text-gray-900">Student Flow</div>
-            <div class="text-sm text-gray-500">Enroll, attempt, review</div>
-          </div>
-        </div>
-        <p class="text-gray-600 italic">Students can browse exams, submit quiz attempts, check results, and monitor progress and rankings.</p>
-      </div>
-
-      <div class="card">
-        <div class="flex items-center mb-4">
-          <div class="w-12 h-12 bg-accent-100 rounded-full flex items-center justify-center mr-4">
-            <span class="font-semibold text-accent-600">TR</span>
-          </div>
-          <div>
-            <div class="font-semibold text-gray-900">Teacher Review</div>
-            <div class="text-sm text-gray-500">Create, publish, score</div>
-          </div>
-        </div>
-        <p class="text-gray-600 italic">Teachers can manage quizzes, review pending attempts, and update marks for manually graded responses.</p>
-      </div>
-
-      <div class="card">
-        <div class="flex items-center mb-4">
-          <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
-            <span class="font-semibold text-green-600">AD</span>
-          </div>
-          <div>
-            <div class="font-semibold text-gray-900">Admin Control</div>
-            <div class="text-sm text-gray-500">Approve and manage access</div>
-          </div>
-        </div>
-        <p class="text-gray-600 italic">Administrators can grant teacher access, manage user visibility, and maintain key platform settings.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- FAQ Section -->
-<section class="py-24 bg-white">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-16">
-      <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-        Frequently asked questions
-      </h2>
-      <p class="text-xl text-gray-600">
-        Answers based on the current project features.
-      </p>
-    </div>
-
-    <div class="space-y-6">
-      <div class="card">
-        <details class="group">
-          <summary class="flex justify-between items-center cursor-pointer font-semibold text-lg">
-            <span>How do teachers get access?</span>
-            <i class="fas fa-chevron-down group-open:rotate-180 transition-transform"></i>
-          </summary>
-          <p class="mt-4 text-gray-600">Teachers register and then wait for administrator approval before teacher tools become available.</p>
-        </details>
-      </div>
-
-      <div class="card">
-        <details class="group">
-          <summary class="flex justify-between items-center cursor-pointer font-semibold text-lg">
-            <span>What can students do after sign up?</span>
-            <i class="fas fa-chevron-down group-open:rotate-180 transition-transform"></i>
-          </summary>
-          <p class="mt-4 text-gray-600">Students can enroll in exams, take quizzes, view results, track progress, use leaderboards, and solve coding problems.</p>
-        </details>
-      </div>
-
-      <div class="card">
-        <details class="group">
-          <summary class="flex justify-between items-center cursor-pointer font-semibold text-lg">
-            <span>Which question types are supported?</span>
-            <i class="fas fa-chevron-down group-open:rotate-180 transition-transform"></i>
-          </summary>
-          <p class="mt-4 text-gray-600">The current app supports multiple choice, true/false, short-answer, and coding exam questions.</p>
-        </details>
-      </div>
-
-      <div class="card">
-        <details class="group">
-          <summary class="flex justify-between items-center cursor-pointer font-semibold text-lg">
-            <span>Is pricing publicly defined in this project?</span>
-            <i class="fas fa-chevron-down group-open:rotate-180 transition-transform"></i>
-          </summary>
-          <p class="mt-4 text-gray-600">This deployment is configured as a private education platform, so pricing or access policy should be set by the institution before launch.</p>
-        </details>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA Section -->
-<section class="py-24 bg-gradient-to-r from-brand-600 to-accent-600 text-white">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-    <h2 class="text-3xl lg:text-4xl font-bold mb-6">
-      Ready to launch the current quiz system?
-    </h2>
-    <p class="text-xl mb-8 text-brand-100">
-      Create an account, review the feature set, and continue from the existing role-based workflow.
-    </p>
-    <div class="flex flex-col sm:flex-row gap-4 justify-center">
-      <a href="/auth/register" class="btn-primary bg-white text-brand-600 hover:bg-gray-50 px-8 py-4 text-lg">
-        Create Account
-      </a>
-      <a href="/features" class="btn-secondary border-white text-white hover:bg-white hover:text-brand-600 px-8 py-4 text-lg">
-        View Features
-      </a>
-    </div>
-  </div>
+  </section>
 </section>

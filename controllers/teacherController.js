@@ -198,10 +198,16 @@ function getUploadedFile(req, fieldName) {
   return req.files?.[fieldName]?.[0] || null;
 }
 
-function getRosterRowsForQuiz(buffer, quizTitle) {
+function getRosterRowsForQuiz(buffer, quizTitle, fallbackSection = '') {
   const rows = parseRosterSheet(buffer, quizTitle);
   const quizName = normalizeExamName(quizTitle);
-  return rows.filter((row) => !row.examName || normalizeExamName(row.examName) === quizName);
+  const section = normalizeSection(fallbackSection);
+  return rows
+    .filter((row) => !row.examName || normalizeExamName(row.examName) === quizName)
+    .map((row) => ({
+      ...row,
+      section: normalizeSection(row.section) || section,
+    }));
 }
 
 function getRosterSections(entries) {
@@ -229,12 +235,6 @@ function rosterModeLabel(mode) {
 async function importRosterRowsForQuiz({ quiz, teacherId, rows }) {
   const existingEntries = await ExamRosterEntry.find({ quiz: quiz._id });
   const existingByStudentId = new Map(existingEntries.map((entry) => [rosterEntryKey(entry.studentId, entry.section), entry]));
-  const existingByPlainStudentId = existingEntries.reduce((map, entry) => {
-    const studentId = normalizeStudentId(entry.studentId);
-    if (!map.has(studentId)) map.set(studentId, []);
-    map.get(studentId).push(entry);
-    return map;
-  }, new Map());
   let importedCount = 0;
 
   for (const row of rows) {
@@ -242,11 +242,6 @@ async function importRosterRowsForQuiz({ quiz, teacherId, rows }) {
     const section = normalizeSection(row.section);
     const entryKey = rosterEntryKey(studentId, section);
     let entry = existingByStudentId.get(entryKey);
-    if (!entry && section) {
-      const sameStudentEntries = existingByPlainStudentId.get(studentId) || [];
-      const unsectionedEntry = sameStudentEntries.find((item) => !normalizeSection(item.section));
-      if (unsectionedEntry) entry = unsectionedEntry;
-    }
 
     if (!entry) {
       entry = await ExamRosterEntry.create({
@@ -424,9 +419,10 @@ exports.createQuiz = async (req, res) => {
   let rosterRows = [];
   let skippedRosterRows = 0;
   if (rosterFile) {
+    const rosterSection = normalizeSection(req.body.rosterSection);
     try {
       const allRows = parseRosterSheet(rosterFile.buffer, payload.title);
-      rosterRows = getRosterRowsForQuiz(rosterFile.buffer, payload.title);
+      rosterRows = getRosterRowsForQuiz(rosterFile.buffer, payload.title, rosterSection);
       skippedRosterRows = allRows.length - rosterRows.length;
     } catch (error) {
       req.flash('error', error.message || 'Unable to read the uploaded student sheet.');
@@ -563,9 +559,10 @@ exports.uploadRoster = async (req, res) => {
 
   let allRows = [];
   let matchingRows = [];
+  const rosterSection = normalizeSection(req.body.rosterSection);
   try {
     allRows = parseRosterSheet(req.file.buffer, quiz.title);
-    matchingRows = getRosterRowsForQuiz(req.file.buffer, quiz.title);
+    matchingRows = getRosterRowsForQuiz(req.file.buffer, quiz.title, rosterSection);
   } catch (error) {
     req.flash('error', error.message || 'Unable to read the uploaded sheet.');
     return res.redirect(`/teacher/quizzes/${quiz._id}/edit`);

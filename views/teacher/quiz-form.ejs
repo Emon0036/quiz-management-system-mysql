@@ -59,6 +59,11 @@
             <input id="createRosterSheet" class="form-control" type="file" name="rosterSheet" accept=".csv,.tsv,.txt">
             <div class="form-text">Optional while creating. Export from Google Sheets as CSV with columns: Student ID, Student Name, Section, Exam Name, Date.</div>
           </div>
+          <div class="form-field">
+            <label class="form-label" for="createRosterSection">Sheet section</label>
+            <input id="createRosterSection" class="form-control" name="rosterSection" placeholder="Example: A">
+            <div class="form-text">Used only when the uploaded sheet has no Section column.</div>
+          </div>
         <% } %>
 
         <div class="form-field">
@@ -119,6 +124,11 @@
               <label class="form-label" for="rosterSheet">Upload Google Sheet CSV</label>
               <input id="rosterSheet" class="form-control" type="file" name="rosterSheet" accept=".csv,.tsv,.txt" required>
               <div class="form-text">Use columns: Student ID, Student Name, Section, Exam Name, Date. Section can be A, B, C, or any group name.</div>
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="uploadRosterSection">Sheet section</label>
+              <input id="uploadRosterSection" class="form-control" name="rosterSection" placeholder="Example: A">
+              <div class="form-text">Used only when the uploaded sheet has no Section column.</div>
             </div>
             <div class="toolbar">
               <button class="btn btn-outline-primary" type="submit">

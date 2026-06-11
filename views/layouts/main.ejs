@@ -101,8 +101,8 @@
       <% if (!(typeof hideSiteChrome !== 'undefined' && hideSiteChrome)) { %>
         <%- include('../partials/navbar') %>
       <% } %>
+      <%- include('../partials/flash') %>
       <main class="site-main <%= typeof hideSiteChrome !== 'undefined' && hideSiteChrome ? 'site-main--auth' : '' %>">
-        <%- include('../partials/flash') %>
         <%- body %>
       </main>
       <% if (!(typeof hideSiteChrome !== 'undefined' && hideSiteChrome)) { %>
