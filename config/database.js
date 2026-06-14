@@ -62,6 +62,111 @@ async function ensureIndex(tableName, indexName, fields, options = {}) {
   }
 }
 
+const FOREIGN_KEY_DEFINITIONS = [
+  ['users', 'approvedBy', 'users', 'fk_users_approved_by', 'SET NULL'],
+  ['users', 'blockedBy', 'users', 'fk_users_blocked_by', 'SET NULL'],
+  ['admins', 'user', 'users', 'fk_admins_user', 'CASCADE'],
+  ['admins', 'createdBy', 'users', 'fk_admins_created_by', 'SET NULL'],
+  ['quizzes', 'createdBy', 'users', 'fk_quizzes_created_by', 'CASCADE'],
+  ['questions', 'quiz', 'quizzes', 'fk_questions_quiz', 'CASCADE'],
+  ['attempts', 'student', 'users', 'fk_attempts_student', 'CASCADE'],
+  ['attempts', 'quiz', 'quizzes', 'fk_attempts_quiz', 'CASCADE'],
+  ['results', 'student', 'users', 'fk_results_student', 'CASCADE'],
+  ['results', 'quiz', 'quizzes', 'fk_results_quiz', 'CASCADE'],
+  ['results', 'attempt', 'attempts', 'fk_results_attempt', 'CASCADE'],
+  ['enrollments', 'student', 'users', 'fk_enrollments_student', 'CASCADE'],
+  ['enrollments', 'quiz', 'quizzes', 'fk_enrollments_quiz', 'CASCADE'],
+  ['enrollments', 'bestAttemptId', 'attempts', 'fk_enrollments_best_attempt', 'SET NULL'],
+  ['progress', 'student', 'users', 'fk_progress_student', 'CASCADE'],
+  ['global_leaderboards', 'student', 'users', 'fk_global_leaderboards_student', 'CASCADE'],
+  ['leaderboards', 'quiz', 'quizzes', 'fk_leaderboards_quiz', 'CASCADE'],
+  ['exam_roster_entries', 'teacher', 'users', 'fk_exam_roster_teacher', 'CASCADE'],
+  ['exam_roster_entries', 'quiz', 'quizzes', 'fk_exam_roster_quiz', 'CASCADE'],
+  ['exam_roster_entries', 'student', 'users', 'fk_exam_roster_student', 'SET NULL'],
+  ['problems', 'createdBy', 'users', 'fk_problems_created_by', 'SET NULL'],
+  ['submissions', 'problem', 'problems', 'fk_submissions_problem', 'CASCADE'],
+  ['submissions', 'student', 'users', 'fk_submissions_student', 'CASCADE'],
+  ['submissions', 'reviewedBy', 'users', 'fk_submissions_reviewed_by', 'SET NULL'],
+  ['coding_submissions', 'attempt', 'attempts', 'fk_coding_submissions_attempt', 'CASCADE'],
+  ['coding_submissions', 'question', 'questions', 'fk_coding_submissions_question', 'CASCADE'],
+].map(([tableName, columnName, referencedTableName, constraintName, onDelete]) => ({
+  tableName,
+  columnName,
+  referencedTableName,
+  referencedColumnName: 'id',
+  constraintName,
+  indexName: `${constraintName}_idx`,
+  onDelete,
+}));
+
+async function foreignKeyExists(tableName, constraintName) {
+  const [rows] = await sequelize.query(
+    `SELECT CONSTRAINT_NAME
+     FROM information_schema.TABLE_CONSTRAINTS
+     WHERE CONSTRAINT_SCHEMA = ?
+       AND TABLE_NAME = ?
+       AND CONSTRAINT_NAME = ?
+       AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+     LIMIT 1`,
+    { replacements: [databaseConfig.database, tableName, constraintName] }
+  );
+
+  return rows.length > 0;
+}
+
+async function countForeignKeyOrphans(definition) {
+  const childTable = escapeIdentifier(definition.tableName);
+  const childColumn = escapeIdentifier(definition.columnName);
+  const parentTable = escapeIdentifier(definition.referencedTableName);
+  const parentColumn = escapeIdentifier(definition.referencedColumnName);
+
+  const [rows] = await sequelize.query(
+    `SELECT COUNT(*) AS orphanCount
+     FROM ${childTable} child_table
+     LEFT JOIN ${parentTable} parent_table
+       ON child_table.${childColumn} = parent_table.${parentColumn}
+     WHERE child_table.${childColumn} IS NOT NULL
+       AND parent_table.${parentColumn} IS NULL`
+  );
+
+  return Number(rows[0]?.orphanCount || 0);
+}
+
+async function ensureForeignKey(definition) {
+  if (await foreignKeyExists(definition.tableName, definition.constraintName)) return;
+
+  const orphanCount = await countForeignKeyOrphans(definition);
+  if (orphanCount > 0) {
+    console.warn(
+      `Skipped foreign key ${definition.constraintName}: ${orphanCount} existing ${definition.tableName}.${definition.columnName} value(s) do not reference ${definition.referencedTableName}.${definition.referencedColumnName}.`
+    );
+    return;
+  }
+
+  await ensureIndex(definition.tableName, definition.indexName, [definition.columnName]);
+
+  await sequelize.getQueryInterface().addConstraint(definition.tableName, {
+    fields: [definition.columnName],
+    type: 'foreign key',
+    name: definition.constraintName,
+    references: {
+      table: definition.referencedTableName,
+      field: definition.referencedColumnName,
+    },
+    onDelete: definition.onDelete,
+  });
+}
+
+async function ensureApplicationForeignKeys() {
+  for (const definition of FOREIGN_KEY_DEFINITIONS) {
+    try {
+      await ensureForeignKey(definition);
+    } catch (error) {
+      console.warn(`Skipped foreign key ${definition.constraintName}: ${error.message}`);
+    }
+  }
+}
+
 async function teacherCodeExists(teacherCode) {
   const [rows] = await sequelize.query('SELECT `id` FROM `users` WHERE `teacherCode` = ? LIMIT 1', {
     replacements: [teacherCode],
@@ -199,6 +304,7 @@ async function connectMySql() {
   await sequelize.sync({ alter: process.env.DB_SYNC_ALTER === 'true' });
   await ensureApplicationColumns();
   await backfillAttemptNumbers();
+  await ensureApplicationForeignKeys();
   console.log('MySQL connected');
 }
 

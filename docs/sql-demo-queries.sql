@@ -1,5 +1,3 @@
--- Online Quiz Management System - SQL demo queries
--- Use these in the 3-minute SQL query demonstration section.
 
 USE quiz_management_system;
 
