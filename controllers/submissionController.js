@@ -141,6 +141,10 @@ exports.viewSubmission = async (req, res) => {
       req.flash('error', 'Submission not found');
       return res.redirect('/problems');
     }
+    if (!submission.problem) {
+      req.flash('error', 'The problem for this submission is no longer available.');
+      return res.redirect('/problems/manage');
+    }
     if (!canReviewProblem(req, submission.problem)) {
       req.flash('error', 'You can only review submissions for problems you created.');
       return res.redirect('/problems/manage');
@@ -169,6 +173,10 @@ exports.updateSubmission = async (req, res) => {
     if (!submission) {
       req.flash('error', 'Submission not found');
       return res.redirect('/problems');
+    }
+    if (!submission.problem) {
+      req.flash('error', 'The problem for this submission is no longer available.');
+      return res.redirect('/problems/manage');
     }
     if (!canReviewProblem(req, submission.problem)) {
       req.flash('error', 'You can only review submissions for problems you created.');
@@ -206,6 +214,14 @@ exports.viewStudentSubmission = async (req, res) => {
 
     if (!submission) {
       req.flash('error', 'Submission not found');
+      return res.redirect('/problems');
+    }
+    if (!submission.problem) {
+      req.flash('error', 'The problem for this submission is no longer available.');
+      return res.redirect('/problems');
+    }
+    if (!submission.student) {
+      req.flash('error', 'The student account for this submission is no longer available.');
       return res.redirect('/problems');
     }
 

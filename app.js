@@ -130,10 +130,7 @@ async function start() {
 
   const shutdown = async () => {
     server.close(async () => {
-      if (sessionStore && typeof sessionStore.close === 'function') {
-        sessionStore.close();
-      }
-      await sequelize.close();
+      await closeAppResources();
       process.exit(0);
     });
   };
@@ -142,7 +139,24 @@ async function start() {
   process.on('SIGTERM', shutdown);
 }
 
-start().catch((error) => {
-  console.error('Server startup failed:', error.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  start().catch((error) => {
+    console.error('Server startup failed:', error.message);
+    process.exit(1);
+  });
+}
+
+async function closeAppResources() {
+  if (sessionStore && typeof sessionStore.close === 'function') {
+    sessionStore.close();
+    sessionStore = null;
+  }
+  await sequelize.close();
+}
+
+module.exports = {
+  app,
+  closeAppResources,
+  configureApp,
+  start,
+};

@@ -648,6 +648,7 @@ exports.leaderboard = async (req, res) => {
     return res.redirect('/student/quizzes');
   }
   const leaderboard = await Leaderboard.findOne({ quiz: quiz._id }).populate('entries.student', 'name email profileImage');
-  const myEntry = leaderboard?.entries.find((entry) => entry.student._id.toString() === req.user._id.toString());
+  const leaderboardEntries = Array.isArray(leaderboard?.entries) ? leaderboard.entries : [];
+  const myEntry = leaderboardEntries.find((entry) => String(entry.student?._id || entry.student || '') === String(req.user._id));
   res.render('student/leaderboard', { title: 'Leaderboard', quiz, leaderboard, myEntry });
 };

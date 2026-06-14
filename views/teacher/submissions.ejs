@@ -24,11 +24,12 @@
           </thead>
           <tbody>
             <% submissions.forEach(submission => { %>
+              <% const student = submission.student || {}; %>
               <tr>
                 <td>
-                  <strong><%= submission.student.name %></strong>
+                  <strong><%= student.name || 'Deleted student' %></strong>
                   <br>
-                  <small class="text-muted"><%= submission.student.email %></small>
+                  <small class="text-muted"><%= student.email || 'Account unavailable' %></small>
                 </td>
                 <td>
                   <small><%= new Date(submission.submittedAt).toLocaleString() %></small>

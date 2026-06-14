@@ -55,6 +55,10 @@ function getDocumentId(value) {
   return String(value);
 }
 
+function canReviewAttempt(req, attempt) {
+  return Boolean(attempt?.quiz && getDocumentId(attempt.quiz.createdBy) === getDocumentId(req.user));
+}
+
 function buildQuizPayload(body) {
   const duration = Number(body.duration);
   const passingMarks = Number(body.passingMarks);
@@ -718,23 +722,30 @@ exports.attempts = async (req, res) => {
 
 exports.reviewAttempt = async (req, res) => {
   const attempt = await Attempt.findById(req.params.attemptId).populate('quiz').populate('answers.question').populate('student', 'name email');
-  if (!attempt || attempt.quiz.createdBy.toString() !== req.user._id.toString()) {
+  if (!attempt || !canReviewAttempt(req, attempt)) {
     req.flash('error', 'Attempt not found.');
     return res.redirect('/teacher/quizzes');
   }
+  attempt.answers = Array.isArray(attempt.answers) ? attempt.answers : [];
   return res.render('teacher/review-attempt', { title: 'Manual Review', attempt });
 };
 
 exports.updateReview = async (req, res) => {
   const attempt = await Attempt.findById(req.params.attemptId).populate('quiz').populate('answers.question');
-  if (!attempt || attempt.quiz.createdBy.toString() !== req.user._id.toString()) {
+  if (!attempt || !canReviewAttempt(req, attempt)) {
     req.flash('error', 'Attempt not found.');
     return res.redirect('/teacher/quizzes');
   }
 
+  attempt.answers = Array.isArray(attempt.answers) ? attempt.answers : [];
   const reviewErrors = [];
   attempt.answers.forEach((answer, index) => {
     if (!answer.needsManualReview) return;
+
+    if (!answer.question) {
+      reviewErrors.push(`Question ${index + 1} is no longer available, so this attempt cannot be reviewed safely.`);
+      return;
+    }
 
     const submittedMarks = Number(req.body.marks?.[index]);
     const teacherCorrectAnswer = cleanText(req.body.teacherCorrectAnswers?.[index]);
@@ -759,18 +770,20 @@ exports.updateReview = async (req, res) => {
   }
 
   attempt.answers.forEach((answer, index) => {
-    const isManualQuestion = ['short-answer', 'coding'].includes(answer.question.type);
+    const question = answer.question || {};
+    const isManualQuestion = ['short-answer', 'coding'].includes(question.type);
 
     if (answer.needsManualReview) {
       const submittedMarks = Number(req.body.marks?.[index]);
       const marks = Number.isFinite(submittedMarks) ? submittedMarks : 0;
-      answer.marksObtained = Math.max(0, Math.min(marks, answer.question.marks));
-      answer.isCorrect = answer.marksObtained === answer.question.marks;
+      const maxMarks = Number(question.marks || 0);
+      answer.marksObtained = Math.max(0, Math.min(marks, maxMarks));
+      answer.isCorrect = answer.marksObtained === maxMarks;
       answer.needsManualReview = false;
     }
 
     if (isManualQuestion) {
-      answer.teacherCorrectAnswer = cleanText(req.body.teacherCorrectAnswers?.[index]) || cleanText(answer.question.correctAnswer);
+      answer.teacherCorrectAnswer = cleanText(req.body.teacherCorrectAnswers?.[index]) || cleanText(question.correctAnswer);
     }
     answer.reviewComment = cleanText(req.body.comments?.[index]);
   });
@@ -778,7 +791,7 @@ exports.updateReview = async (req, res) => {
   const quizId = getDocumentId(attempt.quiz);
   const studentId = getDocumentId(attempt.student);
   const attemptId = getDocumentId(attempt);
-  attempt.score = attempt.answers.reduce((sum, answer) => sum + answer.marksObtained, 0);
+  attempt.score = attempt.answers.reduce((sum, answer) => sum + Number(answer.marksObtained || 0), 0);
   attempt.percentage = attempt.totalMarks ? Math.round((attempt.score / attempt.totalMarks) * 100) : 0;
   attempt.passed = attempt.percentage >= attempt.quiz.passingMarks;
   attempt.status = 'reviewed';

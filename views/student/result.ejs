@@ -1,9 +1,10 @@
 <% layout('layouts/main') %>
+<% const quiz = attempt.quiz || {}; %>
 <section class="page-shell">
   <div class="page-container page-stack">
     <div class="result-hero">
       <span class="eyebrow">Result</span>
-      <h1><%= attempt.quiz.title %></h1>
+      <h1><%= quiz.title || 'Deleted exam' %></h1>
       <div class="score-circle"><%= attempt.percentage %>%</div>
       <p class="lead"><%= attempt.status === 'pending-review' ? 'Pending manual review' : attempt.passed ? 'Passed' : 'Needs improvement' %></p>
       <p><%= attempt.score %> out of <%= attempt.totalMarks %> marks</p>
@@ -20,22 +21,25 @@
       </div>
 
       <% attempt.answers.forEach((answer, index) => { %>
-        <% const isManualQuestion = ['short-answer', 'coding'].includes(answer.question.type); %>
-        <% const referenceAnswer = answer.teacherCorrectAnswer || answer.question.correctAnswer || ''; %>
+        <% const question = answer.question || {}; %>
+        <% const questionType = question.type || 'unknown'; %>
+        <% const questionMarks = Number(question.marks || answer.marksObtained || 0); %>
+        <% const isManualQuestion = ['short-answer', 'coding'].includes(questionType); %>
+        <% const referenceAnswer = answer.teacherCorrectAnswer || question.correctAnswer || ''; %>
         <div class="review-item mb-4 p-4 rounded-3 shadow-sm">
           <div class="d-flex align-items-start justify-content-between mb-3 gap-3">
             <div>
-              <h3 class="h6 mb-1"><span class="badge bg-primary me-2"><%= index + 1 %></span><%= answer.question.questionText %></h3>
-              <p class="text-muted mb-0">Max marks: <strong><%= answer.question.marks %></strong></p>
+              <h3 class="h6 mb-1"><span class="badge bg-primary me-2"><%= index + 1 %></span><%= question.questionText || 'Deleted question' %></h3>
+              <p class="text-muted mb-0">Max marks: <strong><%= questionMarks %></strong></p>
             </div>
             <div class="text-end">
               <span class="badge <%= answer.needsManualReview ? 'text-bg-warning' : answer.isCorrect ? 'text-bg-success' : 'text-bg-danger' %>">
-                <%= answer.needsManualReview ? 'Pending Review' : `${answer.marksObtained}/${answer.question.marks} marks` %>
+                <%= answer.needsManualReview ? 'Pending Review' : `${answer.marksObtained}/${questionMarks} marks` %>
               </span>
             </div>
           </div>
 
-          <% if (answer.question.type === 'coding') { %>
+          <% if (questionType === 'coding') { %>
             <div class="mb-3">
               <p class="mb-1 text-muted"><strong>Your code:</strong></p>
               <pre class="code-block"><code><%= answer.answer || '(No code submitted)' %></code></pre>
@@ -50,7 +54,7 @@
           <% if (isManualQuestion && referenceAnswer && referenceAnswer.trim()) { %>
             <div class="alert alert-info mb-3">
               <strong>Right answer:</strong>
-              <% if (answer.question.type === 'coding') { %>
+              <% if (questionType === 'coding') { %>
                 <pre class="code-block mt-2 mb-0"><code><%= referenceAnswer %></code></pre>
               <% } else { %>
                 <p class="mb-0 mt-2"><%= referenceAnswer %></p>
@@ -58,16 +62,16 @@
             </div>
           <% } %>
 
-          <% if (!answer.needsManualReview && !answer.isCorrect && !isManualQuestion) { %>
+          <% if (!answer.needsManualReview && !answer.isCorrect && !isManualQuestion && question.correctAnswer) { %>
             <div class="alert alert-info mb-3">
-              <strong>Correct answer:</strong> <%= answer.question.correctAnswer %>
+              <strong>Correct answer:</strong> <%= question.correctAnswer %>
             </div>
           <% } %>
 
-          <% if (!isManualQuestion && answer.question.explanation && answer.question.explanation.trim()) { %>
+          <% if (!isManualQuestion && question.explanation && question.explanation.trim()) { %>
             <div class="alert alert-light border border-secondary mb-3">
               <strong>Explanation:</strong>
-              <p class="mb-0 mt-2"><%= answer.question.explanation %></p>
+              <p class="mb-0 mt-2"><%= question.explanation %></p>
             </div>
           <% } %>
 

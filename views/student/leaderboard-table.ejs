@@ -4,9 +4,10 @@
     <tbody>
       <% if (!leaderboard || leaderboard.entries.length === 0) { %><tr><td colspan="5" class="text-center text-muted py-4">Leaderboard is empty.</td></tr><% } %>
       <% leaderboard && leaderboard.entries.forEach((entry) => { %>
+        <% const student = entry.student || {}; %>
         <tr>
           <td><strong>#<%= entry.rank %></strong></td>
-          <td><%= entry.student.name %><div class="small text-muted"><%= entry.student.email %></div></td>
+          <td><%= student.name || 'Deleted student' %><div class="small text-muted"><%= student.email || 'Account unavailable' %></div></td>
           <td><%= entry.bestScore %></td>
           <td><%= entry.bestPercentage %>%</td>
           <td><%= entry.attemptCount %></td>

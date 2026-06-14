@@ -4,12 +4,13 @@
     <tbody>
       <% if (attempts.length === 0) { %><tr><td colspan="6" class="text-center text-muted py-4">No attempts yet.</td></tr><% } %>
       <% attempts.forEach((attempt) => { %>
+        <% const quiz = attempt.quiz || {}; %>
         <tr>
-          <td><strong><%= attempt.quiz.title %></strong><div class="small text-muted"><%= attempt.quiz.category %></div></td>
+          <td><strong><%= quiz.title || 'Deleted exam' %></strong><div class="small text-muted"><%= quiz.category || 'Unavailable' %></div></td>
           <td>#<%= attempt.attemptNumber || 1 %></td>
           <td><%= attempt.score %>/<%= attempt.totalMarks %> (<%= attempt.percentage %>%)</td>
           <td><span class="badge text-bg-<%= attempt.status === 'pending-review' ? 'warning' : attempt.passed ? 'success' : 'danger' %>"><%= attempt.status === 'pending-review' ? 'pending' : attempt.passed ? 'pass' : 'fail' %></span></td>
-          <td><%= attempt.submittedAt.toLocaleString() %></td>
+          <td><%= attempt.submittedAt ? attempt.submittedAt.toLocaleString() : '' %></td>
           <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/student/results/<%= attempt._id %>">Open Result</a></td>
         </tr>
       <% }) %>

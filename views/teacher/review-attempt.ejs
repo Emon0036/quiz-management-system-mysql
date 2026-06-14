@@ -1,31 +1,38 @@
 <% layout('layouts/main') %>
+<%
+  const quiz = attempt.quiz || {};
+  const student = attempt.student || {};
+%>
 <section class="page-shell">
   <div class="page-container page-stack">
     <div class="page-heading">
       <div>
         <span class="eyebrow">Manual Review</span>
         <p class="text-muted mb-1">Attempt <%= attempt.attemptNumber || 1 %></p>
-        <h1><%= attempt.student.name %> · <%= attempt.quiz.title %></h1>
-        <p><%= attempt.student.email %> · Review written or coding answers and assign final marks.</p>
+        <h1><%= student.name || 'Deleted student' %> &middot; <%= quiz.title || 'Deleted exam' %></h1>
+        <p><%= student.email || 'Account unavailable' %> &middot; Review written or coding answers and assign final marks.</p>
       </div>
     </div>
 
     <form action="/teacher/attempts/<%= attempt._id %>/review?_method=PATCH" method="POST" class="form-panel">
       <% attempt.answers.forEach((answer, index) => { %>
-        <% const isManualQuestion = ['short-answer', 'coding'].includes(answer.question.type); %>
-        <% const referenceAnswer = answer.teacherCorrectAnswer || answer.question.correctAnswer || ''; %>
+        <% const question = answer.question || {}; %>
+        <% const questionType = question.type || 'unknown'; %>
+        <% const questionMarks = Number(question.marks || answer.marksObtained || 0); %>
+        <% const isManualQuestion = ['short-answer', 'coding'].includes(questionType); %>
+        <% const referenceAnswer = answer.teacherCorrectAnswer || question.correctAnswer || ''; %>
         <div class="review-item bg-white rounded-3 p-4 mb-4 shadow-sm">
           <div class="d-flex justify-content-between align-items-start mb-3">
             <div>
-              <h2 class="h5 mb-1"><%= index + 1 %>. <%= answer.question.questionText %></h2>
-              <p class="text-muted mb-0">Marks: <strong><%= answer.question.marks %></strong></p>
+              <h2 class="h5 mb-1"><%= index + 1 %>. <%= question.questionText || 'Deleted question' %></h2>
+              <p class="text-muted mb-0">Marks: <strong><%= questionMarks %></strong></p>
             </div>
             <% if (!answer.needsManualReview) { %>
-              <span class="badge <%= answer.isCorrect ? 'text-bg-success' : 'text-bg-danger' %>"><%= answer.marksObtained %>/<%= answer.question.marks %></span>
+              <span class="badge <%= answer.isCorrect ? 'text-bg-success' : 'text-bg-danger' %>"><%= answer.marksObtained %>/<%= questionMarks %></span>
             <% } %>
           </div>
 
-          <% if (answer.question.type === 'coding') { %>
+          <% if (questionType === 'coding') { %>
             <div class="mb-3">
               <p class="text-muted mb-2"><strong>Student code:</strong></p>
               <pre class="code-block"><code><%= answer.answer || '(No code submitted)' %></code></pre>
@@ -40,14 +47,14 @@
           <% if (answer.needsManualReview) { %>
             <div class="mb-3">
               <label class="form-label">Assign marks</label>
-              <input class="form-control" type="number" min="0" max="<%= answer.question.marks %>" name="marks[<%= index %>]" value="<%= answer.marksObtained %>" required>
+              <input class="form-control" type="number" min="0" max="<%= questionMarks %>" name="marks[<%= index %>]" value="<%= answer.marksObtained %>" required>
             </div>
           <% } %>
 
           <% if (isManualQuestion) { %>
             <div class="mb-3">
               <label class="form-label">Right answer / reference answer</label>
-              <textarea class="form-control" name="teacherCorrectAnswers[<%= index %>]" rows="<%= answer.question.type === 'coding' ? 6 : 3 %>" placeholder="<%= answer.question.type === 'coding' ? 'Add the reference solution or expected approach' : 'Add the right answer for this written response' %>" <%= answer.needsManualReview ? 'required' : '' %>><%= referenceAnswer %></textarea>
+              <textarea class="form-control" name="teacherCorrectAnswers[<%= index %>]" rows="<%= questionType === 'coding' ? 6 : 3 %>" placeholder="<%= questionType === 'coding' ? 'Add the reference solution or expected approach' : 'Add the right answer for this written response' %>" <%= answer.needsManualReview ? 'required' : '' %>><%= referenceAnswer %></textarea>
             </div>
           <% } %>
 

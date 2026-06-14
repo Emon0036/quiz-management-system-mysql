@@ -163,7 +163,7 @@
         const data = await response.json();
         
         if (data.submissions && data.submissions.length > 0) {
-          const submissions = data.submissions.filter(s => s.problem._id === '<%= problem._id %>');
+          const submissions = data.submissions.filter(s => s.problem && s.problem._id === '<%= problem._id %>');
           
           if (submissions.length > 0) {
             let html = '<div class="form-panel mt-4"><h3 class="h5 mb-3">Your Submissions</h3><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Submitted</th><th>Language</th><th>Status</th><th>Marks</th><th>Action</th></tr></thead><tbody>';
